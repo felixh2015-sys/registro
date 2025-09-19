@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Registro de Ventas de Guantes (USDT)</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f2f2f2; padding: 20px; }
+    .container { max-width: 800px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,.1); }
+    h2 { text-align: center; color: #333; }
+    label { font-weight: bold; display: block; margin-top: 10px; }
+    input, select, button { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; }
+    button { background: #4CAF50; color: #fff; border: none; cursor: pointer; font-size: 16px; }
+    button:hover { background: #45a049; }
+    .btn-red { background:#d9534f; }
+    .btn-blue { background:#007BFF; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #eee; }
+    .totals-container { margin-top: 15px; padding: 10px; border: 1px solid #eee; border-radius: 5px; background: #f9f9f9; }
+    .total { font-weight: bold; margin-top: 5px; font-size: 1.1em; }
+    #totalUtilidad { color: #28a745; }
+    #totalCostos { color: #dc3545; }
+    #totalVentas { color: #007bff; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .metodo-pago-selector { display: flex; gap: 15px; margin-top: 15px; border: 1px solid #ddd; padding: 10px; border-radius: 5px; }
+    .metodo-pago-selector label { display: flex; align-items: center; gap: 5px; font-weight: normal; margin: 0; }
+    .metodo-pago-selector input[type="radio"] { width: auto; }
+    
+    @media (max-width: 600px){ .row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📋 Registro de Ventas de Guantes</h2>
+
+    <div class="row">
+        <div>
+            <label>Modelo de guantes:</label>
+            <select id="modelo">
+              <option value="Guantes tácticos">Guantes tácticos</option>
+              <option value="Guantes impermeables">Guantes impermeables</option>
+              <option value="Guantes reforzados">Guantes reforzados</option>
+              <option value="Guantes dedo libre">Guantes dedo libre</option>
+              <option value="Guantes medio dedo">Guantes medio dedo</option>
+            </select>
+        </div>
+        <div>
+            <label>Talla:</label>
+            <select id="talla">
+              <option value="S">S</option>
+              <option value="M">M</option>
+              <option value="L">L</option>
+              <option value="XL">XL</option>
+              <option value="XXL">XXL</option>
+            </select>
+        </div>
+    </div>
+    
+    <label>💰 Costo unitario (USDT):</label>
+    <input type="text" id="costoUnitarioUSDT" inputmode="decimal" placeholder="Ej: 7.50" />
+
+    <label>Método de pago:</label>
+    <div class="metodo-pago-selector">
+        <label>
+            <input type="radio" name="metodoPago" value="bcv" checked> 💵 Bolívares (Calculado a USDT)
+        </label>
+        <label>
+            <input type="radio" name="metodoPago" value="directo"> 💲 Divisa Directa (USDT)
+        </label>
+    </div>
+
+    <div id="pagoBCV">
+      <div class="row">
+        <div>
+          <label>Precio de venta (USD - BCV):</label>
+          <input type="text" id="pvUSD" inputmode="decimal" placeholder="Ej: 12.5" />
+        </div>
+        <div>
+          <label>Delivery (USD - BCV):</label>
+          <input type="text" id="deliveryUSD" inputmode="decimal" placeholder="Ej: 1.5" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>📊 Tasa BCV (VES/USD):</label>
+          <input type="text" id="tasaBCV" inputmode="decimal" placeholder="Ej: 36.5000" />
+        </div>
+        <div>
+          <label>📈 Tasa Binance (VES/USD):</label>
+          <input type="text" id="tasaBinance" inputmode="decimal" placeholder="Ej: 36.8000" />
+        </div>
+      </div>
+    </div>
+
+    <div id="pagoDirecto" style="display:none;">
+      <div class="row">
+        <div>
+          <label>Precio de venta (USDT):</label>
+          <input type="text" id="pvUSDT_directo" inputmode="decimal" placeholder="Ej: 12.35" />
+        </div>
+        <div>
+          <label>Delivery (USDT):</label>
+          <input type="text" id="deliveryUSDT_directo" inputmode="decimal" placeholder="Ej: 1.50" />
+        </div>
+      </div>
+    </div>
+    
+    <div class="row" style="margin-top:10px">
+      <button onclick="registrarVenta()">Registrar venta</button>
+      <button class="btn-red" onclick="limpiarHistorial()">🗑 Limpiar historial</button>
+    </div>
+    <button class="btn-blue" style="margin-top:10px" onclick="exportarCSV()">📤 Exportar a Excel</button>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Modelo</th>
+          <th>Talla</th>
+          <th>PV (USDT)</th>
+          <th>Delivery (USDT)</th>
+          <th>Costo (USDT)</th> <th>Total Venta (USDT)</th>
+          <th>Método de Pago</th> 
+        </tr>
+      </thead>
+      <tbody id="tablaVentas"></tbody>
+    </table>
+    <div class="totals-container" id="totales"></div>
+  </div>
+
+  <script>
+    // Utilidad: lee números aceptando coma o punto; si falla, usa fallback
+    function leerNumero(id, fallback = NaN) {
+      const el = document.getElementById(id);
+      const raw = (el?.value || "").toString().trim().replace(',', '.');
+      const n = parseFloat(raw);
+      return Number.isNaN(n) ? fallback : n;
+    }
+
+    // Estado
+    let ventas = JSON.parse(localStorage.getItem("ventasGuantes")) || [];
+
+    // Cargar persistentes
+    const tasaBCVGuardada = localStorage.getItem("tasaBCV");
+    const tasaBinanceGuardada = localStorage.getItem("tasaBinance");
+    const pvUSDGuardado = localStorage.getItem("pvUSD");
+    const metodoPagoGuardado = localStorage.getItem("metodoPago");
+    const costoUnitarioGuardado = localStorage.getItem("costoUnitarioUSDT"); // NUEVO
+
+    if (tasaBCVGuardada) document.getElementById("tasaBCV").value = tasaBCVGuardada;
+    if (tasaBinanceGuardada) document.getElementById("tasaBinance").value = tasaBinanceGuardada;
+    if (pvUSDGuardado) document.getElementById("pvUSD").value = pvUSDGuardado;
+    if (costoUnitarioGuardado) document.getElementById("costoUnitarioUSDT").value = costoUnitarioGuardado; // NUEVO
+    if (metodoPagoGuardado) {
+        document.querySelector(`input[name="metodoPago"][value="${metodoPagoGuardado}"]`).checked = true;
+    }
+
+    function guardarVentas() {
+      localStorage.setItem("ventasGuantes", JSON.stringify(ventas));
+    }
+    function guardarTasas(tasaBCV, tasaBinance) {
+      localStorage.setItem("tasaBCV", String(tasaBCV));
+      localStorage.setItem("tasaBinance", String(tasaBinance));
+    }
+    function guardarPV(pvUSD) {
+      localStorage.setItem("pvUSD", String(pvUSD));
+    }
+    // NUEVO: Función para guardar el costo unitario
+    function guardarCosto(costo) {
+      localStorage.setItem("costoUnitarioUSDT", String(costo));
+    }
+
+    function actualizarTabla() {
+      const cuerpo = document.getElementById("tablaVentas");
+      cuerpo.innerHTML = "";
+      let totalVentas = 0;
+      let totalCostos = 0; // NUEVO
+
+      ventas.forEach(v => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${v.fecha}</td>
+          <td>${v.modelo}</td>
+          <td>${v.talla}</td>
+          <td>${v.pvUSDT.toFixed(2)}</td>
+          <td>${v.deliveryUSDT.toFixed(2)}</td>
+          <td>${v.costoUnitarioUSDT.toFixed(2)}</td> <td>${v.totalUSDT.toFixed(2)}</td>
+          <td>${v.metodoPago}</td> `;
+        cuerpo.appendChild(tr);
+        totalVentas += v.totalUSDT;
+        totalCostos += v.costoUnitarioUSDT; // NUEVO
+      });
+
+      // NUEVO: Lógica para mostrar todos los totales
+      const totalesDiv = document.getElementById("totales");
+      if (ventas.length > 0) {
+        const utilidadNeta = totalVentas - totalCostos;
+        totalesDiv.innerHTML = `
+            <div class="total" id="totalVentas">📈 Total Ventas: ${totalVentas.toFixed(2)} USDT</div>
+            <div class="total" id="totalCostos">📉 Total Costos: ${totalCostos.toFixed(2)} USDT</div>
+            <div class="total" id="totalUtilidad">💰 Utilidad Neta: ${utilidadNeta.toFixed(2)} USDT</div>
+        `;
+      } else {
+        totalesDiv.innerHTML = "";
+      }
+    }
+    
+    function actualizarVisibilidadInputs() {
+        const metodo = document.querySelector('input[name="metodoPago"]:checked').value;
+        const divBCV = document.getElementById('pagoBCV');
+        const divDirecto = document.getElementById('pagoDirecto');
+
+        if (metodo === 'bcv') {
+            divBCV.style.display = 'block';
+            divDirecto.style.display = 'none';
+        } else {
+            divBCV.style.display = 'none';
+            divDirecto.style.display = 'block';
+        }
+        localStorage.setItem("metodoPago", metodo);
+    }
+
+    function registrarVenta() {
+      const modelo = document.getElementById("modelo").value;
+      const talla = document.getElementById("talla").value;
+      const metodo = document.querySelector('input[name="metodoPago"]:checked').value;
+      
+      // NUEVO: Leer y validar el costo unitario
+      const costoUnitarioUSDT = leerNumero("costoUnitarioUSDT", parseFloat(localStorage.getItem("costoUnitarioUSDT")));
+      if (Number.isNaN(costoUnitarioUSDT)) {
+        alert("Ingresa el Costo Unitario (USDT).");
+        return;
+      }
+      guardarCosto(costoUnitarioUSDT); // Guardar para la próxima vez
+
+      let pvUSDT, deliveryUSDT, metodoPago;
+
+      if (metodo === 'bcv') {
+        const pvUSD = leerNumero("pvUSD", parseFloat(localStorage.getItem("pvUSD")));
+        const deliveryUSD = leerNumero("deliveryUSD", NaN);
+        const tasaBCV = leerNumero("tasaBCV", parseFloat(localStorage.getItem("tasaBCV")));
+        const tasaBinance = leerNumero("tasaBinance", parseFloat(localStorage.getItem("tasaBinance")));
+
+        if (Number.isNaN(pvUSD)) { alert("Ingresa el Precio de venta (USD)."); return; }
+        if (Number.isNaN(deliveryUSD)) { alert("Ingresa el Delivery (USD). Si es 0, escribe 0."); return; }
+        if (Number.isNaN(tasaBCV)) { alert("Ingresa la Tasa BCV."); return; }
+        if (Number.isNaN(tasaBinance)) { alert("Ingresa la Tasa Binance."); return; }
+        if (tasaBinance === 0) { alert("La Tasa Binance no puede ser 0."); return; }
+
+        guardarPV(pvUSD);
+        guardarTasas(tasaBCV, tasaBinance);
+
+        pvUSDT = (pvUSD * tasaBCV) / tasaBinance;
+        deliveryUSDT = (deliveryUSD * tasaBCV) / tasaBinance;
+        metodoPago = 'Bs. (BCV a USDT)';
+        
+      } else {
+        pvUSDT = leerNumero("pvUSDT_directo", NaN);
+        deliveryUSDT = leerNumero("deliveryUSDT_directo", NaN);
+
+        if (Number.isNaN(pvUSDT)) { alert("Ingresa el Precio de venta (USDT)."); return; }
+        if (Number.isNaN(deliveryUSDT)) { alert("Ingresa el Delivery (USDT). Si es 0, escribe 0."); return; }
+        metodoPago = 'Divisa (USDT)';
+      }
+
+      const totalUSDT = pvUSDT + deliveryUSDT;
+      const fecha = new Date().toLocaleString();
+
+      // NUEVO: Se añade costoUnitarioUSDT al objeto de venta
+      ventas.push({ fecha, modelo, talla, pvUSDT, deliveryUSDT, totalUSDT, metodoPago, costoUnitarioUSDT }); 
+      guardarVentas();
+      actualizarTabla();
+
+      // Limpia campos de entrada para agilizar ventas
+      document.getElementById("deliveryUSD").value = "";
+      document.getElementById("pvUSDT_directo").value = "";
+      document.getElementById("deliveryUSDT_directo").value = "";
+    }
+
+    function limpiarHistorial() {
+      if (confirm("¿Seguro que deseas borrar todas las ventas registradas?")) {
+        ventas = [];
+        guardarVentas();
+        actualizarTabla();
+      }
+    }
+
+    function csvEscapar(valor) {
+      const s = String(valor ?? "");
+      if (/[",\n]/.test(s)) {
+        return `"${s.replace(/"/g, '""')}"`;
+      }
+      return s;
+    }
+
+    function exportarCSV() {
+      if (ventas.length === 0) { alert("No hay datos para exportar."); return; }
+
+      // NUEVO: Se añade la columna "Costo (USDT)"
+      const encabezados = ["Fecha","Modelo","Talla","PV (USDT)","Delivery (USDT)","Costo (USDT)","Total Venta (USDT)", "Metodo de Pago"];
+      let filas = [encabezados.join(",")];
+
+      ventas.forEach(v => {
+        filas.push([
+          csvEscapar(v.fecha),
+          csvEscapar(v.modelo),
+          csvEscapar(v.talla),
+          v.pvUSDT.toFixed(2),
+          v.deliveryUSDT.toFixed(2),
+          v.costoUnitarioUSDT.toFixed(2), // NUEVO
+          v.totalUSDT.toFixed(2),
+          csvEscapar(v.metodoPago)
+        ].join(","));
+      });
+
+      const blob = new Blob([filas.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "ventas_guantes.csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+    
+    // -- EVENT LISTENERS --
+    
+    document.querySelectorAll('input[name="metodoPago"]').forEach(radio => {
+        radio.addEventListener('change', actualizarVisibilidadInputs);
+    });
+
+    document.getElementById("pvUSD").addEventListener("change", () => {
+      const n = leerNumero("pvUSD", NaN);
+      if (!Number.isNaN(n)) guardarPV(n);
+    });
+    // NUEVO: Event listener para guardar el costo
+    document.getElementById("costoUnitarioUSDT").addEventListener("change", () => {
+      const n = leerNumero("costoUnitarioUSDT", NaN);
+      if (!Number.isNaN(n)) guardarCosto(n);
+    });
+    document.getElementById("tasaBCV").addEventListener("change", () => {
+      const n = leerNumero("tasaBCV", NaN);
+      if (!Number.isNaN(n)) localStorage.setItem("tasaBCV", String(n));
+    });
+    document.getElementById("tasaBinance").addEventListener("change", () => {
+      const n = leerNumero("tasaBinance", NaN);
+      if (!Number.isNaN(n)) localStorage.setItem("tasaBinance", String(n));
+    });
+
+    // Inicialización al cargar la página
+    actualizarVisibilidadInputs();
+    actualizarTabla();
+  </script>
+</body>
+</html>
