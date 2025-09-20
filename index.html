@@ -122,6 +122,15 @@
       <div class="total" id="totalGeneral"></div>
       <div class="total" id="totalCostos"></div>
       <div class="total" id="utilidadTotal"></div>
+      <hr>
+      <div style="margin-top:20px;">
+        <h3>Guardar ventas en GitHub (experimental)</h3>
+        <label>Token personal de GitHub (no lo compartas):</label>
+        <input type="password" id="githubToken" placeholder="ghp_xxx..." />
+        <button class="btn-blue" onclick="guardarEnGitHub()">Guardar ventas en GitHub</button>
+        <div id="githubStatus" style="margin-top:10px;color:#d9534f;"></div>
+        <small>⚠️ No pongas tu token en un HTML público. Solo úsalo localmente.</small>
+      </div>
   </div>
 
   <script>
@@ -390,6 +399,61 @@
     // Inicialización al cargar la página
     actualizarVisibilidadInputs(); // NUEVO
     actualizarTabla();
+
+      // --- GitHub API Integration (experimental) ---
+      async function guardarEnGitHub() {
+        const token = document.getElementById('githubToken').value.trim();
+        const status = document.getElementById('githubStatus');
+        if (!token) { status.textContent = 'Ingresa tu token personal de GitHub.'; return; }
+        status.textContent = 'Guardando en GitHub...';
+
+        // Configura tu usuario/repositorio/ruta de archivo
+        const owner = 'felixh2015-sys';
+        const repo = 'registro';
+        const path = 'ventas_guantes.json'; // Puedes cambiar el nombre/ruta
+
+        // Prepara el contenido a guardar (JSON)
+        const contenido = JSON.stringify(ventas, null, 2);
+        const contenidoBase64 = btoa(unescape(encodeURIComponent(contenido)));
+
+        // Primero, obtener el SHA del archivo si existe
+        let sha = undefined;
+        try {
+          const resp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+            headers: { 'Authorization': `token ${token}` }
+          });
+          if (resp.ok) {
+            const data = await resp.json();
+            sha = data.sha;
+          }
+        } catch (e) { /* Si no existe, lo creará */ }
+
+        // Crear o actualizar el archivo
+        const body = {
+          message: 'Actualización de ventas desde HTML',
+          content: contenidoBase64,
+          committer: { name: 'Registro HTML', email: 'registro@example.com' },
+          ...(sha ? { sha } : {})
+        };
+        try {
+          const resp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `token ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+          });
+          if (resp.ok) {
+            status.textContent = '¡Ventas guardadas en GitHub correctamente!';
+          } else {
+            const error = await resp.json();
+            status.textContent = 'Error: ' + (error.message || 'No se pudo guardar.');
+          }
+        } catch (e) {
+          status.textContent = 'Error de red o token inválido.';
+        }
+      }
   </script>
 </body>
 </html>
