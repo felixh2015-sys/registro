@@ -320,6 +320,15 @@
       guardarVentas();
       actualizarTabla();
 
+      // Guardar automáticamente en GitHub si hay token
+      const token = document.getElementById('githubToken').value.trim();
+      if (token) {
+        guardarEnGitHub();
+      } else {
+        const status = document.getElementById('githubStatus');
+        status.textContent = 'No se guardó en GitHub: ingresa tu token.';
+      }
+
       // Limpia campos de entrada para agilizar ventas
       document.getElementById("deliveryUSD").value = "";
       document.getElementById("pvUSDT_directo").value = "";
