@@ -22,7 +22,12 @@
     .metodo-pago-selector { display: flex; gap: 15px; margin-top: 15px; border: 1px solid #ddd; padding: 10px; border-radius: 5px; }
     .metodo-pago-selector label { display: flex; align-items: center; gap: 5px; font-weight: normal; margin: 0; }
     .metodo-pago-selector input[type="radio"] { width: auto; }
-    
+
+    /* action buttons in table */
+    .action-btn { width: auto !important; padding: 6px 8px; font-size: 13px; margin: 2px; display: inline-block; cursor: pointer; border-radius: 4px; color: #fff; border: none; }
+    .action-edit { background: #007BFF; }
+    .action-delete { background: #d9534f; }
+
     @media (max-width: 600px){ .row { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -35,6 +40,7 @@
       <option value="Guantes tácticos">Guantes tácticos</option>
       <option value="Guantes impermeables">Guantes impermeables</option>
       <option value="Guantes reforzados">Guantes reforzados</option>
+      <option value="Guantes gym">Guantes gym</option>
       <option value="Guantes dedo libre">Guantes dedo libre</option>
       <option value="Guantes medio dedo">Guantes medio dedo</option>
     </select>
@@ -97,7 +103,8 @@
     </div>
     
     <div class="row" style="margin-top:10px">
-      <button onclick="registrarVenta()">Registrar venta</button>
+      <button id="registrarBtn" onclick="registrarVenta()">Registrar venta</button>
+      <button id="cancelarEdicionBtn" style="display:none" onclick="cancelarEdicion()">Cancelar edición</button>
       <button class="btn-red" onclick="limpiarHistorial()">🗑 Limpiar historial</button>
     </div>
   <button class="btn-blue" style="margin-top:10px" onclick="exportarXLSX()">📤 Exportar a Excel (.xlsx)</button>
@@ -115,6 +122,7 @@
             <th>Costo unitario (USDT)</th>
             <th>Total Venta (USDT)</th>
             <th>Método de Pago</th>
+            <th>Acciones</th>
           </tr>
       </thead>
       <tbody id="tablaVentas"></tbody>
@@ -188,6 +196,7 @@
 
     // Estado
   let ventas = JSON.parse(localStorage.getItem("ventasGuantes")) || [];
+  let editingIndex = null;
   const costoUnitarioGuardado = localStorage.getItem("costoUnitario");
 
     // Cargar persistentes
@@ -201,7 +210,8 @@
   if (pvUSDGuardado) document.getElementById("pvUSD").value = pvUSDGuardado;
   if (costoUnitarioGuardado) document.getElementById("costoUnitario").value = costoUnitarioGuardado;
   if (metodoPagoGuardado) {
-    document.querySelector(`input[name="metodoPago"][value="${metodoPagoGuardado}"]`).checked = true;
+    const el = document.querySelector(`input[name="metodoPago"][value="${metodoPagoGuardado}"]`);
+    if (el) el.checked = true;
   }
 
     function guardarVentas() {
@@ -225,7 +235,7 @@
         let totalVenta = 0;
         let totalCostos = 0;
 
-        ventas.forEach(v => {
+        ventas.forEach((v, i) => {
           const tr = document.createElement("tr");
           tr.innerHTML = `
             <td>${v.fecha}</td>
@@ -235,7 +245,12 @@
             <td>${v.deliveryUSDT.toFixed(2)}</td>
             <td>${v.costoUnitario !== undefined ? v.costoUnitario.toFixed(2) : "0.00"}</td>
             <td>${v.totalUSDT.toFixed(2)}</td>
-            <td>${v.metodoPago}</td> `;
+            <td>${v.metodoPago}</td>
+            <td>
+              <button class="action-btn action-edit" onclick="editarVenta(${i})">Editar</button>
+              <button class="action-btn action-delete" onclick="eliminarVenta(${i})">Eliminar</button>
+            </td>
+          `;
           cuerpo.appendChild(tr);
           totalVenta += v.totalUSDT;
           totalCostos += v.costoUnitario !== undefined ? v.costoUnitario : 0;
@@ -307,7 +322,16 @@
       const totalUSDT = pvUSDT + deliveryUSDT;
       const fecha = new Date().toLocaleString();
 
-      ventas.push({ fecha, modelo, talla, pvUSDT, deliveryUSDT, costoUnitario, totalUSDT, metodoPago });
+      if (editingIndex !== null) {
+        // actualizar registro existente
+        ventas[editingIndex] = { fecha, modelo, talla, pvUSDT, deliveryUSDT, costoUnitario, totalUSDT, metodoPago };
+        editingIndex = null;
+        document.getElementById("registrarBtn").textContent = "Registrar venta";
+        document.getElementById("cancelarEdicionBtn").style.display = "none";
+      } else {
+        ventas.push({ fecha, modelo, talla, pvUSDT, deliveryUSDT, costoUnitario, totalUSDT, metodoPago });
+      }
+
       guardarVentas();
       actualizarTabla();
 
@@ -315,6 +339,7 @@
       document.getElementById("deliveryUSD").value = "";
       document.getElementById("pvUSDT_directo").value = "";
       document.getElementById("deliveryUSDT_directo").value = "";
+      document.getElementById("pvUSD").value = "";
       // NO limpiar costoUnitario para conservar el valor
     }
 
@@ -387,8 +412,62 @@
       if (!Number.isNaN(n)) localStorage.setItem("tasaBinance", String(n));
     });
 
-    // Inicialización al cargar la página
-    actualizarVisibilidadInputs(); // NUEVO
+    // funciones para editar / eliminar renglones
+    function editarVenta(index) {
+      const v = ventas[index];
+      editingIndex = index;
+      document.getElementById("modelo").value = v.modelo;
+      document.getElementById("talla").value = v.talla;
+      document.getElementById("costoUnitario").value = v.costoUnitario !== undefined ? v.costoUnitario.toFixed(2) : "";
+
+      // Si la venta original fue BCV y hay tasas guardadas, intentar mostrar valores en campos USD
+      const tasaBCV = parseFloat(localStorage.getItem("tasaBCV"));
+      const tasaBinance = parseFloat(localStorage.getItem("tasaBinance"));
+      if ((v.metodoPago || "").includes('BCV') && !Number.isNaN(tasaBCV) && !Number.isNaN(tasaBinance) && tasaBCV && tasaBinance) {
+        document.querySelector('input[name="metodoPago"][value="bcv"]').checked = true;
+        // calcular aproximado en USD para edición
+        document.getElementById("pvUSD").value = ((v.pvUSDT * tasaBinance) / tasaBCV).toFixed(2);
+        document.getElementById("deliveryUSD").value = ((v.deliveryUSDT * tasaBinance) / tasaBCV).toFixed(2);
+        document.getElementById("tasaBCV").value = tasaBCV;
+        document.getElementById("tasaBinance").value = tasaBinance;
+      } else {
+        // mostrar valores directos en USDT
+        document.querySelector('input[name="metodoPago"][value="directo"]').checked = true;
+        document.getElementById("pvUSDT_directo").value = v.pvUSDT.toFixed(2);
+        document.getElementById("deliveryUSDT_directo").value = v.deliveryUSDT.toFixed(2);
+      }
+      actualizarVisibilidadInputs();
+      document.getElementById("registrarBtn").textContent = "Guardar cambios";
+      document.getElementById("cancelarEdicionBtn").style.display = "block";
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function eliminarVenta(index) {
+      if (!confirm("¿Eliminar este renglón?")) return;
+      ventas.splice(index, 1);
+      guardarVentas();
+      actualizarTabla();
+    }
+
+    function cancelarEdicion() {
+      editingIndex = null;
+      document.getElementById("registrarBtn").textContent = "Registrar venta";
+      document.getElementById("cancelarEdicionBtn").style.display = "none";
+      // limpiar inputs de precio para evitar confusiones
+      document.getElementById("pvUSD").value = "";
+      document.getElementById("deliveryUSD").value = "";
+      document.getElementById("pvUSDT_directo").value = "";
+      document.getElementById("deliveryUSDT_directo").value = "";
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      // Inicialización al cargar la página
+      actualizarVisibilidadInputs();
+      actualizarTabla();
+    });
+
+    // llamada inicial (en caso no se use DOMContentLoaded por contexto)
+    actualizarVisibilidadInputs();
     actualizarTabla();
   </script>
 </body>
