@@ -1,439 +1,70 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <title>Registro de Ventas de Guantes (USDT)</title>
-  <style>
-    body { font-family: Arial, sans-serif; background: #f2f2f2; padding: 20px; }
-    .container { max-width: 700px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,.1); }
-    h2 { text-align: center; color: #333; }
-    label { font-weight: bold; display: block; margin-top: 10px; }
-    input, select, button { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; }
-    button { background: #4CAF50; color: #fff; border: none; cursor: pointer; font-size: 16px; }
-    button:hover { background: #45a049; }
-    .btn-red { background:#d9534f; }
-    .btn-blue { background:#007BFF; }
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    th { background: #eee; }
-    .total { margin-top: 10px; font-weight: bold; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    /* */
-    .metodo-pago-selector { display: flex; gap: 15px; margin-top: 15px; border: 1px solid #ddd; padding: 10px; border-radius: 5px; }
-    .metodo-pago-selector label { display: flex; align-items: center; gap: 5px; font-weight: normal; margin: 0; }
-    .metodo-pago-selector input[type="radio"] { width: auto; }
+<label>Modelo de guantes:</label>
+<select id="modelo">
+  <option value="Guantes tácticos">Guantes tácticos</option>
+  <option value="Guantes impermeables">Guantes impermeables</option>
+  <option value="Guantes reforzados">Guantes reforzados</option>
+  <option value="Guantes dedo libre">Guantes dedo libre</option>
+  <option value="Guantes medio dedo">Guantes medio dedo</option>
+</select>
 
-    @media (max-width: 600px){ .row { grid-template-columns: 1fr; } }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h2>📋 Registro de Ventas de Guantes</h2>
+<label>Talla:</label>
+<select id="talla">
+  <option value="S">S</option>
+  <option value="M">M</option>
+  <option value="L">L</option>
+  <option value="XL">XL</option>
+  <option value="XXL">XXL</option>
+</select>
 
-    <label>Modelo de guantes:</label>
-    <select id="modelo">
-      <option value="Guantes tácticos">Guantes tácticos</option>
-      <option value="Guantes impermeables">Guantes impermeables</option>
-      <option value="Guantes reforzados">Guantes reforzados</option>
-      <option value="Guantes dedo libre">Guantes dedo libre</option>
-      <option value="Guantes medio dedo">Guantes medio dedo</option>
-    </select>
+  <label>Costo unitario (USDT):</label>
+  <input type="text" id="costoUnitario" inputmode="decimal" placeholder="Ej: 5.00" />
+<label>Método de pago:</label>
+<div class="metodo-pago-selector">
+    <label>
+        <input type="radio" name="metodoPago" value="bcv" checked> 💵 Bolívares (Calculado a USDT)
+    </label>
+    <label>
+        <input type="radio" name="metodoPago" value="directo"> 💲 Divisa Directa (USDT)
+    </label>
+</div>
 
-    <label>Talla:</label>
-    <select id="talla">
-      <option value="S">S</option>
-      <option value="M">M</option>
-      <option value="L">L</option>
-      <option value="XL">XL</option>
-      <option value="XXL">XXL</option>
-    </select>
-
-      <label>Costo unitario (USDT):</label>
-      <input type="text" id="costoUnitario" inputmode="decimal" placeholder="Ej: 5.00" />
-    <label>Método de pago:</label>
-    <div class="metodo-pago-selector">
-        <label>
-            <input type="radio" name="metodoPago" value="bcv" checked> 💵 Bolívares (Calculado a USDT)
-        </label>
-        <label>
-            <input type="radio" name="metodoPago" value="directo"> 💲 Divisa Directa (USDT)
-        </label>
+<div id="pagoBCV">
+  <div class="row">
+    <div>
+      <label>Precio de venta (USD - BCV):</label>
+      <input type="text" id="pvUSD" inputmode="decimal" placeholder="Ej: 12.5" />
     </div>
-
-    <div id="pagoBCV">
-      <div class="row">
-        <div>
-          <label>Precio de venta (USD - BCV):</label>
-          <input type="text" id="pvUSD" inputmode="decimal" placeholder="Ej: 12.5" />
-        </div>
-        <div>
-          <label>Delivery (USD - BCV):</label>
-          <input type="text" id="deliveryUSD" inputmode="decimal" placeholder="Ej: 1.5" />
-        </div>
-      </div>
-      <div class="row">
-        <div>
-          <label>📊 Tasa BCV (VES/USD):</label>
-          <input type="text" id="tasaBCV" inputmode="decimal" placeholder="Ej: 36.5000" />
-        </div>
-        <div>
-          <label>📈 Tasa Binance (VES/USD):</label>
-          <input type="text" id="tasaBinance" inputmode="decimal" placeholder="Ej: 36.8000" />
-        </div>
-      </div>
+    <div>
+      <label>Delivery (USD - BCV):</label>
+      <input type="text" id="deliveryUSD" inputmode="decimal" placeholder="Ej: 1.5" />
     </div>
-
-    <div id="pagoDirecto" style="display:none;">
-      <div class="row">
-        <div>
-          <label>Precio de venta (USDT):</label>
-          <input type="text" id="pvUSDT_directo" inputmode="decimal" placeholder="Ej: 12.35" />
-        </div>
-        <div>
-          <label>Delivery (USDT):</label>
-          <input type="text" id="deliveryUSDT_directo" inputmode="decimal" placeholder="Ej: 1.50" />
-        </div>
-      </div>
-    </div>
-
-    <div class="row" style="margin-top:10px">
-      <button onclick="registrarVenta()">Registrar venta</button>
-      <button class="btn-red" onclick="limpiarHistorial()">🗑 Limpiar historial</button>
-    </div>
-  <button class="btn-blue" style="margin-top:10px" onclick="exportarXLSX()">📤 Exportar a Excel (.xlsx)</button>
-  <input type="file" id="importarXLSXInput" accept=".xlsx" style="display:none" />
-  <button class="btn-blue" style="margin-top:10px" onclick="document.getElementById('importarXLSXInput').click()">📥 Importar desde Excel (.xlsx)</button>
-
-    <table>
-      <thead>
-        <tr>
-            <th>Fecha</th>
-            <th>Modelo</th>
-            <th>Talla</th>
-            <th>PV (USDT)</th>
-            <th>Delivery (USDT)</th>
-            <th>Costo unitario (USDT)</th>
-            <th>Total Venta (USDT)</th>
-            <th>Método de Pago</th>
-          </tr>
-      </thead>
-      <tbody id="tablaVentas"></tbody>
-    </table>
-      <div class="total" id="totalGeneral"></div>
-      <div class="total" id="totalCostos"></div>
-      <div class="total" id="utilidadTotal"></div>
   </div>
+  <div class="row">
+    <div>
+      <label>📊 Tasa BCV (VES/USD):</label>
+      <input type="text" id="tasaBCV" inputmode="decimal" placeholder="Ej: 36.5000" />
+    </div>
+    <div>
+      <label>📈 Tasa Binance (VES/USD):</label>
+      <input type="text" id="tasaBinance" inputmode="decimal" placeholder="Ej: 36.8000" />
+    </div>
+  </div>
+</div>
 
-  <script>
-    // Exportar a Excel (.xlsx) - ahora incluye segunda hoja "Inventario"
-    function construirInventario(ventasList) {
-      const tallas = ["S","M","L","XL","XXL"];
-      const inv = {};
-      ventasList.forEach(v => {
-        if (!v || !v.modelo || !v.talla) return;
-        if (!inv[v.modelo]) {
-          inv[v.modelo] = {};
-          tallas.forEach(t => inv[v.modelo][t] = 0);
-        }
-        const t = v.talla;
-        if (tallas.includes(t)) inv[v.modelo][t] = (inv[v.modelo][t] || 0) + 1;
-      });
-      return { inv, tallas };
-    }
+<div id="pagoDirecto" style="display:none;">
+  <div class="row">
+    <div>
+      <label>Precio de venta (USDT):</label>
+      <input type="text" id="pvUSDT_directo" inputmode="decimal" placeholder="Ej: 12.35" />
+    </div>
+    <div>
+      <label>Delivery (USDT):</label>
+      <input type="text" id="deliveryUSDT_directo" inputmode="decimal" placeholder="Ej: 1.50" />
+    </div>
+  </div>
+</div>
 
-    function exportarXLSX() {
-      if (!window.XLSX) {
-        alert("La librería SheetJS aún no está disponible. Espera unos segundos y vuelve a intentar.");
-        return;
-      }
-
-      // Hoja Ventas
-      const encabezadosVentas = ["Fecha","Modelo","Talla","PV (USDT)","Delivery (USDT)","Total Venta (USDT)", "Metodo de Pago"];
-      const datosVentas = ventas.map(v => [
-        v.fecha, v.modelo, v.talla, v.pvUSDT, v.deliveryUSDT, v.totalUSDT, v.metodoPago
-      ]);
-      const wsVentas = window.XLSX.utils.aoa_to_sheet([encabezadosVentas, ...datosVentas]);
-
-      // Hoja Inventario (construida a partir de ventas actuales)
-      const { inv, tallas } = construirInventario(ventas);
-      const encabezadosInv = ["Modelo", ...tallas];
-      const filasInv = [encabezadosInv];
-      const modelos = Object.keys(inv).sort();
-      // si no hay modelos en inventario, incluir los que están en el select para mostrar zeros
-      if (modelos.length === 0) {
-        Array.from(document.getElementById("modelo").options).forEach(opt => {
-          if (!modelos.includes(opt.value)) modelos.push(opt.value);
-        });
-        modelos.sort();
-      }
-      modelos.forEach(modelo => {
-        const row = [modelo];
-        tallas.forEach(t => row.push(inv[modelo] ? (inv[modelo][t] || 0) : 0));
-        filasInv.push(row);
-      });
-      const wsInv = window.XLSX.utils.aoa_to_sheet(filasInv);
-
-      // Crear workbook y anexar ambas hojas
-      const wb = window.XLSX.utils.book_new();
-      window.XLSX.utils.book_append_sheet(wb, wsVentas, "Ventas");
-      window.XLSX.utils.book_append_sheet(wb, wsInv, "Inventario");
-      window.XLSX.writeFile(wb, "ventas_e_inventario_guantes.xlsx");
-    }
-
-    // SheetJS desde CDN
-    var script = document.createElement('script');
-    script.src = 'https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js';
-    document.head.appendChild(script);
-
-    // Importar desde Excel (.xlsx)
-    document.getElementById('importarXLSXInput').addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        const data = new Uint8Array(evt.target.result);
-        const workbook = window.XLSX.read(data, {type: 'array'});
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = window.XLSX.utils.sheet_to_json(sheet, {header:1});
-        if (!rows || rows.length < 2) { alert('Archivo vacío o formato incorrecto.'); return; }
-        const encabezados = rows[0];
-        const esperado = ["Fecha","Modelo","Talla","PV (USDT)","Delivery (USDT)","Total Venta (USDT)", "Metodo de Pago"];
-        if (encabezados.length !== esperado.length || !encabezados.every((h,i) => h === esperado[i])) {
-          alert('Formato de archivo incorrecto. Exporta primero para ver el formato esperado.');
-          return;
-        }
-        const nuevasVentas = rows.slice(1).map(row => {
-          return {
-            fecha: row[0],
-            modelo: row[1],
-            talla: row[2],
-            pvUSDT: parseFloat(row[3]) || 0,
-            deliveryUSDT: parseFloat(row[4]) || 0,
-            totalUSDT: parseFloat(row[5]) || 0,
-            metodoPago: row[6] || ''
-          };
-        });
-        if (!nuevasVentas.length) { alert('No se encontraron ventas en el archivo.'); return; }
-        ventas = nuevasVentas;
-        guardarVentas();
-        actualizarTabla();
-        alert('Ventas importadas correctamente.');
-        e.target.value = '';
-      };
-      reader.readAsArrayBuffer(file);
-    });
-    // Utilidad: lee números aceptando coma o punto; si falla, usa fallback
-    function leerNumero(id, fallback = NaN) {
-      const el = document.getElementById(id);
-      const raw = (el?.value || "").toString().trim().replace(',', '.');
-      const n = parseFloat(raw);
-      return Number.isNaN(n) ? fallback : n;
-    }
-
-    // Estado
-  let ventas = JSON.parse(localStorage.getItem("ventasGuantes")) || [];
-  const costoUnitarioGuardado = localStorage.getItem("costoUnitario");
-
-    // Cargar persistentes
-  const tasaBCVGuardada = localStorage.getItem("tasaBCV");
-  const tasaBinanceGuardada = localStorage.getItem("tasaBinance");
-  const pvUSDGuardado = localStorage.getItem("pvUSD");
-  const metodoPagoGuardado = localStorage.getItem("metodoPago");
-
-  if (tasaBCVGuardada) document.getElementById("tasaBCV").value = tasaBCVGuardada;
-  if (tasaBinanceGuardada) document.getElementById("tasaBinance").value = tasaBinanceGuardada;
-  if (pvUSDGuardado) document.getElementById("pvUSD").value = pvUSDGuardado;
-  if (costoUnitarioGuardado) document.getElementById("costoUnitario").value = costoUnitarioGuardado;
-  if (metodoPagoGuardado) {
-    document.querySelector(`input[name="metodoPago"][value="${metodoPagoGuardado}"]`).checked = true;
-  }
-
-    function guardarVentas() {
-      localStorage.setItem("ventasGuantes", JSON.stringify(ventas));
-    }
-    function guardarTasas(tasaBCV, tasaBinance) {
-      localStorage.setItem("tasaBCV", String(tasaBCV));
-      localStorage.setItem("tasaBinance", String(tasaBinance));
-    }
-    function guardarPV(pvUSD) {
-      localStorage.setItem("pvUSD", String(pvUSD));
-    }
-
-    function guardarCostoUnitario(costoUnitario) {
-      localStorage.setItem("costoUnitario", String(costoUnitario));
-    }
-
-    function actualizarTabla() {
-      const cuerpo = document.getElementById("tablaVentas");
-      cuerpo.innerHTML = "";
-        let totalVenta = 0;
-        let totalCostos = 0;
-
-        ventas.forEach(v => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${v.fecha}</td>
-            <td>${v.modelo}</td>
-            <td>${v.talla}</td>
-            <td>${v.pvUSDT.toFixed(2)}</td>
-            <td>${v.deliveryUSDT.toFixed(2)}</td>
-            <td>${v.costoUnitario !== undefined ? v.costoUnitario.toFixed(2) : "0.00"}</td>
-            <td>${v.totalUSDT.toFixed(2)}</td>
-            <td>${v.metodoPago}</td> `;
-          cuerpo.appendChild(tr);
-          totalVenta += v.totalUSDT;
-          totalCostos += v.costoUnitario !== undefined ? v.costoUnitario : 0;
-        });
-
-        document.getElementById("totalGeneral").textContent =
-          ventas.length ? `🔹 Total acumulado venta: ${totalVenta.toFixed(2)} USDT` : "";
-        document.getElementById("totalCostos").textContent =
-          ventas.length ? `🔸 Total acumulado costos: ${totalCostos.toFixed(2)} USDT` : "";
-        document.getElementById("utilidadTotal").textContent =
-          ventas.length ? `💰 Utilidad total: ${(totalVenta-totalCostos).toFixed(2)} USDT` : "";
-    }
-
-    // NUEVO: Función para mostrar/ocultar los campos según el método de pago
-    function actualizarVisibilidadInputs() {
-        const metodo = document.querySelector('input[name="metodoPago"]:checked').value;
-        const divBCV = document.getElementById('pagoBCV');
-        const divDirecto = document.getElementById('pagoDirecto');
-
-        if (metodo === 'bcv') {
-            divBCV.style.display = 'block';
-            divDirecto.style.display = 'none';
-        } else {
-            divBCV.style.display = 'none';
-            divDirecto.style.display = 'block';
-        }
-        localStorage.setItem("metodoPago", metodo); // Guardar la selección
-    }
-
-    function registrarVenta() {
-      const modelo = document.getElementById("modelo").value;
-      const talla = document.getElementById("talla").value;
-      const metodo = document.querySelector('input[name="metodoPago"]:checked').value;
-      const costoUnitario = leerNumero("costoUnitario", NaN);
-
-      let pvUSDT, deliveryUSDT, metodoPago;
-
-      if (Number.isNaN(costoUnitario)) { alert("Ingresa el Costo unitario (USDT)."); return; }
-      guardarCostoUnitario(costoUnitario);
-
-      // Lógica condicional según el método de pago
-      if (metodo === 'bcv') {
-        const pvUSD = leerNumero("pvUSD", parseFloat(localStorage.getItem("pvUSD")));
-        const deliveryUSD = leerNumero("deliveryUSD", NaN);
-        const tasaBCV = leerNumero("tasaBCV", parseFloat(localStorage.getItem("tasaBCV")));
-        const tasaBinance = leerNumero("tasaBinance", parseFloat(localStorage.getItem("tasaBinance")));
-
-        if (Number.isNaN(pvUSD)) { alert("Ingresa el Precio de venta (USD)."); return; }
-        if (Number.isNaN(deliveryUSD)) { alert("Ingresa el Delivery (USD). Si es 0, escribe 0."); return; }
-        if (Number.isNaN(tasaBCV)) { alert("Ingresa la Tasa BCV."); return; }
-        if (Number.isNaN(tasaBinance)) { alert("Ingresa la Tasa Binance."); return; }
-        if (tasaBinance === 0) { alert("La Tasa Binance no puede ser 0."); return; }
-
-        guardarPV(pvUSD);
-        guardarTasas(tasaBCV, tasaBinance);
-
-        pvUSDT = (pvUSD * tasaBCV) / tasaBinance;
-        deliveryUSDT = (deliveryUSD * tasaBCV) / tasaBinance;
-        metodoPago = 'Bs. (BCV a USDT)';
-      } else {
-        pvUSDT = leerNumero("pvUSDT_directo", NaN);
-        deliveryUSDT = leerNumero("deliveryUSDT_directo", NaN);
-
-        if (Number.isNaN(pvUSDT)) { alert("Ingresa el Precio de venta (USDT)."); return; }
-        if (Number.isNaN(deliveryUSDT)) { alert("Ingresa el Delivery (USDT). Si es 0, escribe 0."); return; }
-        metodoPago = 'Divisa (USDT)';
-      }
-
-      const totalUSDT = pvUSDT + deliveryUSDT;
-      const fecha = new Date().toLocaleString();
-
-      ventas.push({ fecha, modelo, talla, pvUSDT, deliveryUSDT, costoUnitario, totalUSDT, metodoPago });
-      guardarVentas();
-      actualizarTabla();
-
-      // Limpia campos de entrada para agilizar ventas
-      document.getElementById("deliveryUSD").value = "";
-      document.getElementById("pvUSDT_directo").value = "";
-      document.getElementById("deliveryUSDT_directo").value = "";
-      // NO limpiar costoUnitario para conservar el valor
-    }
-
-    function limpiarHistorial() {
-      if (confirm("¿Seguro que deseas borrar todas las ventas registradas?")) {
-        ventas = [];
-        guardarVentas();
-        actualizarTabla();
-      }
-    }
-
-    function csvEscapar(valor) {
-      const s = String(valor ?? "");
-      if (/[",\n]/.test(s)) {
-        return `"${s.replace(/"/g, '""')}"`;
-      }
-      return s;
-    }
-
-    function exportarCSV() {
-      if (ventas.length === 0) { alert("No hay datos para exportar."); return; }
-
-      const encabezados = ["Fecha","Modelo","Talla","PV (USDT)","Delivery (USDT)","Total Venta (USDT)", "Metodo de Pago"]; // NUEVO
-      let filas = [encabezados.join(",")];
-
-      ventas.forEach(v => {
-        filas.push([
-          csvEscapar(v.fecha),
-          csvEscapar(v.modelo),
-          csvEscapar(v.talla),
-          v.pvUSDT.toFixed(2),
-          v.deliveryUSDT.toFixed(2),
-          v.totalUSDT.toFixed(2),
-          csvEscapar(v.metodoPago) // NUEVO
-        ].join(","));
-      });
-
-      const blob = new Blob([filas.join("\n")], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "ventas_guantes.csv";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-
-    // -- EVENT LISTENERS --
-
-    // NUEVO: Listeners para los radio buttons
-    document.querySelectorAll('input[name="metodoPago"]').forEach(radio => {
-        radio.addEventListener('change', actualizarVisibilidadInputs);
-    });
-
-    document.getElementById("pvUSD").addEventListener("change", () => {
-      const n = leerNumero("pvUSD", NaN);
-      if (!Number.isNaN(n)) guardarPV(n);
-    });
-    document.getElementById("costoUnitario").addEventListener("change", () => {
-      const n = leerNumero("costoUnitario", NaN);
-      if (!Number.isNaN(n)) guardarCostoUnitario(n);
-    });
-    document.getElementById("tasaBCV").addEventListener("change", () => {
-      const n = leerNumero("tasaBCV", NaN);
-      if (!Number.isNaN(n)) localStorage.setItem("tasaBCV", String(n));
-    });
-    document.getElementById("tasaBinance").addEventListener("change", () => {
-      const n = leerNumero("tasaBinance", NaN);
-      if (!Number.isNaN(n)) localStorage.setItem("tasaBinance", String(n));
-    });
-
-    // Inicialización al cargar la página
-    actualizarVisibilidadInputs(); // NUEVO
-    actualizarTabla();
-  </script>
-</body>
-</html>
+<div class="row" style="margin-top:10px">
+  <button onclick="registrarVenta()">Registrar venta</button>
+  <button class="btn-red" onclick="limpiarHistorial()">🗑 Limpiar historial</button>
+</div>
