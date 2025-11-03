@@ -23,11 +23,6 @@
     .metodo-pago-selector label { display: flex; align-items: center; gap: 5px; font-weight: normal; margin: 0; }
     .metodo-pago-selector input[type="radio"] { width: auto; }
 
-    /* action buttons in table */
-    .action-btn { width: auto !important; padding: 6px 8px; font-size: 13px; margin: 2px; display: inline-block; cursor: pointer; border-radius: 4px; color: #fff; border: none; }
-    .action-edit { background: #007BFF; }
-    .action-delete { background: #d9534f; }
-
     @media (max-width: 600px){ .row { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -40,7 +35,6 @@
       <option value="Guantes tácticos">Guantes tácticos</option>
       <option value="Guantes impermeables">Guantes impermeables</option>
       <option value="Guantes reforzados">Guantes reforzados</option>
-      <option value="Guantes gym">Guantes gym</option>
       <option value="Guantes dedo libre">Guantes dedo libre</option>
       <option value="Guantes medio dedo">Guantes medio dedo</option>
     </select>
@@ -101,10 +95,9 @@
         </div>
       </div>
     </div>
-    
+
     <div class="row" style="margin-top:10px">
-      <button id="registrarBtn" onclick="registrarVenta()">Registrar venta</button>
-      <button id="cancelarEdicionBtn" style="display:none" onclick="cancelarEdicion()">Cancelar edición</button>
+      <button onclick="registrarVenta()">Registrar venta</button>
       <button class="btn-red" onclick="limpiarHistorial()">🗑 Limpiar historial</button>
     </div>
   <button class="btn-blue" style="margin-top:10px" onclick="exportarXLSX()">📤 Exportar a Excel (.xlsx)</button>
@@ -122,7 +115,6 @@
             <th>Costo unitario (USDT)</th>
             <th>Total Venta (USDT)</th>
             <th>Método de Pago</th>
-            <th>Acciones</th>
           </tr>
       </thead>
       <tbody id="tablaVentas"></tbody>
@@ -133,17 +125,61 @@
   </div>
 
   <script>
-    // Exportar a Excel (.xlsx)
+    // Exportar a Excel (.xlsx) - ahora incluye segunda hoja "Inventario"
+    function construirInventario(ventasList) {
+      const tallas = ["S","M","L","XL","XXL"];
+      const inv = {};
+      ventasList.forEach(v => {
+        if (!v || !v.modelo || !v.talla) return;
+        if (!inv[v.modelo]) {
+          inv[v.modelo] = {};
+          tallas.forEach(t => inv[v.modelo][t] = 0);
+        }
+        const t = v.talla;
+        if (tallas.includes(t)) inv[v.modelo][t] = (inv[v.modelo][t] || 0) + 1;
+      });
+      return { inv, tallas };
+    }
+
     function exportarXLSX() {
-      const encabezados = ["Fecha","Modelo","Talla","PV (USDT)","Delivery (USDT)","Total Venta (USDT)", "Metodo de Pago"];
-      const datos = ventas.map(v => [
+      if (!window.XLSX) {
+        alert("La librería SheetJS aún no está disponible. Espera unos segundos y vuelve a intentar.");
+        return;
+      }
+
+      // Hoja Ventas
+      const encabezadosVentas = ["Fecha","Modelo","Talla","PV (USDT)","Delivery (USDT)","Total Venta (USDT)", "Metodo de Pago"];
+      const datosVentas = ventas.map(v => [
         v.fecha, v.modelo, v.talla, v.pvUSDT, v.deliveryUSDT, v.totalUSDT, v.metodoPago
       ]);
-      const ws = window.XLSX.utils.aoa_to_sheet([encabezados, ...datos]);
+      const wsVentas = window.XLSX.utils.aoa_to_sheet([encabezadosVentas, ...datosVentas]);
+
+      // Hoja Inventario (construida a partir de ventas actuales)
+      const { inv, tallas } = construirInventario(ventas);
+      const encabezadosInv = ["Modelo", ...tallas];
+      const filasInv = [encabezadosInv];
+      const modelos = Object.keys(inv).sort();
+      // si no hay modelos en inventario, incluir los que están en el select para mostrar zeros
+      if (modelos.length === 0) {
+        Array.from(document.getElementById("modelo").options).forEach(opt => {
+          if (!modelos.includes(opt.value)) modelos.push(opt.value);
+        });
+        modelos.sort();
+      }
+      modelos.forEach(modelo => {
+        const row = [modelo];
+        tallas.forEach(t => row.push(inv[modelo] ? (inv[modelo][t] || 0) : 0));
+        filasInv.push(row);
+      });
+      const wsInv = window.XLSX.utils.aoa_to_sheet(filasInv);
+
+      // Crear workbook y anexar ambas hojas
       const wb = window.XLSX.utils.book_new();
-      window.XLSX.utils.book_append_sheet(wb, ws, "Ventas");
-      window.XLSX.writeFile(wb, "ventas_guantes.xlsx");
+      window.XLSX.utils.book_append_sheet(wb, wsVentas, "Ventas");
+      window.XLSX.utils.book_append_sheet(wb, wsInv, "Inventario");
+      window.XLSX.writeFile(wb, "ventas_e_inventario_guantes.xlsx");
     }
+
     // SheetJS desde CDN
     var script = document.createElement('script');
     script.src = 'https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js';
@@ -196,7 +232,6 @@
 
     // Estado
   let ventas = JSON.parse(localStorage.getItem("ventasGuantes")) || [];
-  let editingIndex = null;
   const costoUnitarioGuardado = localStorage.getItem("costoUnitario");
 
     // Cargar persistentes
@@ -210,8 +245,7 @@
   if (pvUSDGuardado) document.getElementById("pvUSD").value = pvUSDGuardado;
   if (costoUnitarioGuardado) document.getElementById("costoUnitario").value = costoUnitarioGuardado;
   if (metodoPagoGuardado) {
-    const el = document.querySelector(`input[name="metodoPago"][value="${metodoPagoGuardado}"]`);
-    if (el) el.checked = true;
+    document.querySelector(`input[name="metodoPago"][value="${metodoPagoGuardado}"]`).checked = true;
   }
 
     function guardarVentas() {
@@ -235,7 +269,7 @@
         let totalVenta = 0;
         let totalCostos = 0;
 
-        ventas.forEach((v, i) => {
+        ventas.forEach(v => {
           const tr = document.createElement("tr");
           tr.innerHTML = `
             <td>${v.fecha}</td>
@@ -245,12 +279,7 @@
             <td>${v.deliveryUSDT.toFixed(2)}</td>
             <td>${v.costoUnitario !== undefined ? v.costoUnitario.toFixed(2) : "0.00"}</td>
             <td>${v.totalUSDT.toFixed(2)}</td>
-            <td>${v.metodoPago}</td>
-            <td>
-              <button class="action-btn action-edit" onclick="editarVenta(${i})">Editar</button>
-              <button class="action-btn action-delete" onclick="eliminarVenta(${i})">Eliminar</button>
-            </td>
-          `;
+            <td>${v.metodoPago}</td> `;
           cuerpo.appendChild(tr);
           totalVenta += v.totalUSDT;
           totalCostos += v.costoUnitario !== undefined ? v.costoUnitario : 0;
@@ -263,7 +292,7 @@
         document.getElementById("utilidadTotal").textContent =
           ventas.length ? `💰 Utilidad total: ${(totalVenta-totalCostos).toFixed(2)} USDT` : "";
     }
-    
+
     // NUEVO: Función para mostrar/ocultar los campos según el método de pago
     function actualizarVisibilidadInputs() {
         const metodo = document.querySelector('input[name="metodoPago"]:checked').value;
@@ -322,16 +351,7 @@
       const totalUSDT = pvUSDT + deliveryUSDT;
       const fecha = new Date().toLocaleString();
 
-      if (editingIndex !== null) {
-        // actualizar registro existente
-        ventas[editingIndex] = { fecha, modelo, talla, pvUSDT, deliveryUSDT, costoUnitario, totalUSDT, metodoPago };
-        editingIndex = null;
-        document.getElementById("registrarBtn").textContent = "Registrar venta";
-        document.getElementById("cancelarEdicionBtn").style.display = "none";
-      } else {
-        ventas.push({ fecha, modelo, talla, pvUSDT, deliveryUSDT, costoUnitario, totalUSDT, metodoPago });
-      }
-
+      ventas.push({ fecha, modelo, talla, pvUSDT, deliveryUSDT, costoUnitario, totalUSDT, metodoPago });
       guardarVentas();
       actualizarTabla();
 
@@ -339,7 +359,6 @@
       document.getElementById("deliveryUSD").value = "";
       document.getElementById("pvUSDT_directo").value = "";
       document.getElementById("deliveryUSDT_directo").value = "";
-      document.getElementById("pvUSD").value = "";
       // NO limpiar costoUnitario para conservar el valor
     }
 
@@ -387,9 +406,9 @@
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }
-    
+
     // -- EVENT LISTENERS --
-    
+
     // NUEVO: Listeners para los radio buttons
     document.querySelectorAll('input[name="metodoPago"]').forEach(radio => {
         radio.addEventListener('change', actualizarVisibilidadInputs);
@@ -412,62 +431,8 @@
       if (!Number.isNaN(n)) localStorage.setItem("tasaBinance", String(n));
     });
 
-    // funciones para editar / eliminar renglones
-    function editarVenta(index) {
-      const v = ventas[index];
-      editingIndex = index;
-      document.getElementById("modelo").value = v.modelo;
-      document.getElementById("talla").value = v.talla;
-      document.getElementById("costoUnitario").value = v.costoUnitario !== undefined ? v.costoUnitario.toFixed(2) : "";
-
-      // Si la venta original fue BCV y hay tasas guardadas, intentar mostrar valores en campos USD
-      const tasaBCV = parseFloat(localStorage.getItem("tasaBCV"));
-      const tasaBinance = parseFloat(localStorage.getItem("tasaBinance"));
-      if ((v.metodoPago || "").includes('BCV') && !Number.isNaN(tasaBCV) && !Number.isNaN(tasaBinance) && tasaBCV && tasaBinance) {
-        document.querySelector('input[name="metodoPago"][value="bcv"]').checked = true;
-        // calcular aproximado en USD para edición
-        document.getElementById("pvUSD").value = ((v.pvUSDT * tasaBinance) / tasaBCV).toFixed(2);
-        document.getElementById("deliveryUSD").value = ((v.deliveryUSDT * tasaBinance) / tasaBCV).toFixed(2);
-        document.getElementById("tasaBCV").value = tasaBCV;
-        document.getElementById("tasaBinance").value = tasaBinance;
-      } else {
-        // mostrar valores directos en USDT
-        document.querySelector('input[name="metodoPago"][value="directo"]').checked = true;
-        document.getElementById("pvUSDT_directo").value = v.pvUSDT.toFixed(2);
-        document.getElementById("deliveryUSDT_directo").value = v.deliveryUSDT.toFixed(2);
-      }
-      actualizarVisibilidadInputs();
-      document.getElementById("registrarBtn").textContent = "Guardar cambios";
-      document.getElementById("cancelarEdicionBtn").style.display = "block";
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function eliminarVenta(index) {
-      if (!confirm("¿Eliminar este renglón?")) return;
-      ventas.splice(index, 1);
-      guardarVentas();
-      actualizarTabla();
-    }
-
-    function cancelarEdicion() {
-      editingIndex = null;
-      document.getElementById("registrarBtn").textContent = "Registrar venta";
-      document.getElementById("cancelarEdicionBtn").style.display = "none";
-      // limpiar inputs de precio para evitar confusiones
-      document.getElementById("pvUSD").value = "";
-      document.getElementById("deliveryUSD").value = "";
-      document.getElementById("pvUSDT_directo").value = "";
-      document.getElementById("deliveryUSDT_directo").value = "";
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      // Inicialización al cargar la página
-      actualizarVisibilidadInputs();
-      actualizarTabla();
-    });
-
-    // llamada inicial (en caso no se use DOMContentLoaded por contexto)
-    actualizarVisibilidadInputs();
+    // Inicialización al cargar la página
+    actualizarVisibilidadInputs(); // NUEVO
     actualizarTabla();
   </script>
 </body>
