@@ -1,613 +1,618 @@
-// ...existing code...
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Registro de Ventas de Guantes (USDT)</title>
-  <style>
-    body { font-family: Arial, sans-serif; background: #f2f2f2; padding: 20px; }
-    .container { max-width: 900px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,.1); }
-    h2 { text-align: center; color: #333; }
-    label { font-weight: bold; display: block; margin-top: 10px; }
-    input, select, button { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; }
-    button { background: #4CAF50; color: #fff; border: none; cursor: pointer; font-size: 16px; }
-    button:hover { background: #45a049; }
-    .btn-red { background:#d9534f; }
-    .btn-blue { background:#007BFF; }
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    th { background: #eee; }
-    .total { margin-top: 10px; font-weight: bold; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .metodo-pago-selector { display: flex; gap: 15px; margin-top: 15px; border: 1px solid #ddd; padding: 10px; border-radius: 5px; }
-    .metodo-pago-selector label { display: flex; align-items: center; gap: 5px; font-weight: normal; margin: 0; }
-    .metodo-pago-selector input[type="radio"] { width: auto; }
-
-    /* action buttons in table */
-    .action-btn { width: auto !important; padding: 6px 8px; font-size: 13px; margin: 2px; display: inline-block; cursor: pointer; border-radius: 4px; color: #fff; border: none; }
-    .action-edit { background: #007BFF; }
-    .action-delete { background: #d9534f; }
-
-    @media (max-width: 900px){
-      .container { padding: 12px; }
-      .row { grid-template-columns: 1fr; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Guantes - Financiero & Edición</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <style>
+        body { background-color: #eef2f7; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card-dashboard { border: none; border-radius: 12px; padding: 20px; color: white; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transition: transform 0.2s; }
+        .card-dashboard:hover { transform: translateY(-5px); }
+        .bg-ventas { background: linear-gradient(135deg, #5b73e8 0%, #4458b8 100%); }
+        .bg-costos { background: linear-gradient(135deg, #f5a623 0%, #f76b1c 100%); }
+        .bg-utilidad { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .input-editable { border: 2px solid #10b981 !important; background-color: #f0fdf4 !important; font-weight: bold; }
+        .edit-mode-banner { display: none; background-color: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 15px; border: 1px solid #ffeeba; font-weight: bold; text-align: center; }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h2>📋 Registro de Ventas de Guantes</h2>
 
-    <label>Modelo de guantes:</label>
-    <select id="modelo">
-      <option value="Guantes tácticos">Guantes tácticos</option>
-      <option value="Guantes impermeables">Guantes impermeables</option>
-      <option value="Guantes reforzados">Guantes reforzados</option>
-      <option value="Guantes dedo libre">Guantes dedo libre</option>
-      <option value="Guantes medio dedo">Guantes medio dedo</option>
-      <option value="Guantes gym">Guantes gym</option>
-    </select>
-
-    <label>Talla:</label>
-    <select id="talla">
-      <option value="S">S</option>
-      <option value="M">M</option>
-      <option value="L">L</option>
-      <option value="XL">XL</option>
-      <option value="XXL">XXL</option>
-    </select>
-
-      <label>Costo unitario (USDT):</label>
-      <input type="text" id="costoUnitario" inputmode="decimal" placeholder="Ej: 5.00" />
-    <label>Método de pago:</label>
-    <div class="metodo-pago-selector">
-        <label>
-            <input type="radio" name="metodoPago" value="bcv" checked> 💵 Bolívares (Calculado a USDT)
-        </label>
-        <label>
-            <input type="radio" name="metodoPago" value="directo"> 💲 Divisa Directa (USDT)
-        </label>
+<div class="container py-4">
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold text-secondary"><i class="bi bi-calculator-fill"></i> Control Financiero Guantes</h3>
+        <button class="btn btn-outline-danger btn-sm" onclick="borrarTodo()"><i class="bi bi-trash3"></i> Resetear Todo</button>
     </div>
 
-    <div id="pagoBCV">
-      <div class="row">
-        <div>
-          <label>Precio de venta (USD - BCV):</label>
-          <input type="text" id="pvUSD" inputmode="decimal" placeholder="Ej: 12.5" />
+    <!-- TASAS -->
+    <div class="card p-3 mb-4 border-0 shadow-sm bg-white">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2 fw-bold text-end text-uppercase small">Tasas Hoy:</div>
+            <div class="col-md-4">
+                <label class="small text-muted">BCV (Cobro Bs)</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text fw-bold">Bs.</span>
+                    <input type="number" step="0.01" id="tasaBCV" class="form-control fw-bold" onchange="guardarTasas(); calcularPrevisualizacion();">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label class="small text-muted">USDT/Paralelo (Realidad)</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text fw-bold">Bs.</span>
+                    <input type="number" step="0.01" id="tasaUSDT" class="form-control fw-bold" onchange="guardarTasas(); calcularPrevisualizacion();">
+                </div>
+            </div>
+            <div class="col-md-2 text-center">
+                <small id="gapInfo" class="badge bg-danger"></small>
+            </div>
         </div>
-        <div>
-          <label>Delivery (USD - BCV):</label>
-          <input type="text" id="deliveryUSD" inputmode="decimal" placeholder="Ej: 1.5" />
-        </div>
-      </div>
-      <div class="row">
-        <div>
-          <label>📊 Tasa BCV (VES/USD):</label>
-          <input type="text" id="tasaBCV" inputmode="decimal" placeholder="Ej: 36.5000" />
-        </div>
-        <div>
-          <label>📈 Tasa Binance (VES/USD):</label>
-          <input type="text" id="tasaBinance" inputmode="decimal" placeholder="Ej: 36.8000" />
-        </div>
-      </div>
     </div>
 
-    <div id="pagoDirecto" style="display:none;">
-      <div class="row">
-        <div>
-          <label>Precio de venta (USDT):</label>
-          <input type="text" id="pvUSDT_directo" inputmode="decimal" placeholder="Ej: 12.35" />
+    <!-- NAVEGACIÓN -->
+    <ul class="nav nav-pills nav-fill mb-3 bg-white p-2 rounded shadow-sm" id="myTab" role="tablist">
+        <li class="nav-item"><button class="nav-link active fw-bold" id="tab-venta" data-bs-toggle="tab" data-bs-target="#venta-tab">1. Registro</button></li>
+        <li class="nav-item"><button class="nav-link fw-bold" id="tab-historial" data-bs-toggle="tab" data-bs-target="#historial-tab">2. Finanzas (Historial)</button></li>
+        <li class="nav-item"><button class="nav-link fw-bold" id="tab-inventario" data-bs-toggle="tab" data-bs-target="#inventario-tab">3. Inventario</button></li>
+    </ul>
+
+    <div class="tab-content">
+        
+        <!-- PESTAÑA 1: VENTA / EDICIÓN -->
+        <div class="tab-pane fade show active bg-white p-4 rounded shadow-sm" id="venta-tab">
+            
+            <div id="bannerEdicion" class="edit-mode-banner">
+                <i class="bi bi-pencil-square"></i> ESTÁS EN MODO EDICIÓN - El stock ha sido devuelto temporalmente
+            </div>
+
+            <form id="formVenta">
+                <input type="hidden" id="editId"> <!-- ID para saber si editamos -->
+                
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold">Modelo</label>
+                        <select class="form-select" id="selProducto" required onchange="seleccionarProducto()">
+                            <option value="">Seleccione...</option>
+                            <!-- JS -->
+                        </select>
+                        <div id="infoStock" class="small mt-1 text-end fw-bold text-muted"></div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Método de Pago</label>
+                        <select class="form-select" id="selMetodo" onchange="verificarMetodo()">
+                            <option value="BCV">Bolívares (BCV)</option>
+                            <option value="USDT">USDT / Binance</option>
+                            <option value="Efectivo">Dólar Efectivo (Manual)</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label">Precio ($)</label>
+                        <input type="number" step="0.01" id="inputPrecio" class="form-control" readonly onchange="calcularPrevisualizacion()">
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label">Cantidad</label>
+                        <input type="number" id="inputCant" class="form-control" value="1" min="1" required onchange="calcularPrevisualizacion()">
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-2">
+                    <div class="col-md-3">
+                        <label class="form-label">Delivery ($)</label>
+                        <input type="number" step="0.1" id="inputDelivery" class="form-control" value="0" onchange="calcularPrevisualizacion()">
+                    </div>
+                    <div class="col-md-9">
+                        <div class="card bg-light border-0">
+                            <div class="card-body p-2">
+                                <div class="row text-center align-items-center">
+                                    <div class="col-4 border-end">
+                                        <small class="text-muted d-block">Cliente Paga</small>
+                                        <span class="fw-bold fs-5">Bs <span id="viewBs">0.00</span></span>
+                                    </div>
+                                    <div class="col-4 border-end">
+                                        <small class="text-primary d-block fw-bold">Ingreso Real</small>
+                                        <span class="fw-bold fs-5 text-primary"><span id="viewRealUSDT">0.00</span> USDT</span>
+                                    </div>
+                                    <div class="col-4">
+                                        <small class="text-success d-block fw-bold">Tu Utilidad</small>
+                                        <span class="fw-bold fs-5 text-success"><span id="viewUtilidad">0.00</span> USDT</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 mt-4 d-flex">
+                    <button type="submit" id="btnSubmit" class="btn btn-primary flex-grow-1 p-3 fw-bold">
+                        <i class="bi bi-plus-circle"></i> REGISTRAR OPERACIÓN
+                    </button>
+                    <button type="button" id="btnCancel" class="btn btn-secondary p-3 fw-bold d-none" onclick="cancelarEdicion()">
+                        CANCELAR
+                    </button>
+                </div>
+            </form>
         </div>
-        <div>
-          <label>Delivery (USDT):</label>
-          <input type="text" id="deliveryUSDT_directo" inputmode="decimal" placeholder="Ej: 1.50" />
+
+        <!-- PESTAÑA 2: FINANZAS (HISTORIAL) -->
+        <div class="tab-pane fade" id="historial-tab">
+            
+            <!-- DASHBOARD -->
+            <div class="row g-3 mb-4 text-center">
+                <div class="col-md-4">
+                    <div class="card-dashboard bg-ventas">
+                        <h5>Venta Total Real</h5>
+                        <h3 class="fw-bold" id="dashVentas">0.00</h3>
+                        <small>USDT Recibidos</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card-dashboard bg-costos">
+                        <h5>Costos Totales</h5>
+                        <h3 class="fw-bold" id="dashCostos">0.00</h3>
+                        <small>Mercancía ($6 base)</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card-dashboard bg-utilidad">
+                        <h5>Utilidad Neta</h5>
+                        <h3 class="fw-bold" id="dashUtilidad">0.00</h3>
+                        <small>Ganancia Limpia</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end mb-2">
+                <button onclick="exportarExcel()" class="btn btn-success btn-sm"><i class="bi bi-file-excel"></i> Exportar a Excel</button>
+            </div>
+
+            <div class="table-responsive bg-white p-3 rounded shadow-sm">
+                <table class="table table-hover table-sm small align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Modelo</th>
+                            <th>Cant</th>
+                            <th>Método</th>
+                            <th>Real (USDT)</th>
+                            <th>Utilidad</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaVentas"></tbody>
+                </table>
+            </div>
         </div>
-      </div>
+
+        <!-- PESTAÑA 3: INVENTARIO -->
+        <div class="tab-pane fade bg-white p-4 rounded shadow-sm" id="inventario-tab">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5><i class="bi bi-box-seam"></i> Inventario ($6 Costo Base)</h5>
+                <button class="btn btn-sm btn-outline-warning" onclick="resetFactory()">Restaurar Stock Inicial</button>
+            </div>
+            <table class="table table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Modelo</th>
+                        <th>Talla</th>
+                        <th>Precio Venta ($)</th>
+                        <th>Stock</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaInv"></tbody>
+            </table>
+        </div>
     </div>
+</div>
 
-    <div class="row" style="margin-top:10px">
-      <button id="registrarBtn" onclick="registrarVenta()">Registrar venta</button>
-      <button id="cancelarEdicionBtn" style="display:none" class="btn-red" onclick="cancelarEdicion()">Cancelar edición</button>
-      <button class="btn-red" onclick="limpiarHistorial()">🗑 Limpiar historial</button>
-    </div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // --- CONFIGURACIÓN ---
+    const COSTO_BASE = 6.00;
+    
+    const MODELOS_DEF = [
+        { m: "Impermeables", p: 15, t: ["S","M","L","XL","XXL"] },
+        { m: "Reforzados", p: 16, t: ["M","L","XL"] },
+        { m: "Tácticos", p: 15, t: ["M","L","XL"] },
+        { m: "Gym", p: 15, t: ["M","L","XL"] },
+        { m: "Medio Dedos", p: 15, t: ["M","L","XL"] },
+        { m: "Mitones", p: 15, t: ["M","L","XL"] }
+    ];
 
-    <div style="margin-top:10px; display:flex; gap:8px;">
-      <button class="btn-blue" onclick="exportarXLSX()">📤 Exportar a Excel (.xlsx)</button>
-      <button class="btn-blue" onclick="exportarCSV()">📄 Exportar CSV</button>
-      <input type="file" id="importarXLSXInput" accept=".xlsx" style="display:none" />
-      <button class="btn-blue" onclick="document.getElementById('importarXLSXInput').click()">📥 Importar .xlsx</button>
-    </div>
+    let db = {
+        inv: JSON.parse(localStorage.getItem('v5_inv')) || [],
+        ventas: JSON.parse(localStorage.getItem('v5_ventas')) || [],
+        tasas: JSON.parse(localStorage.getItem('v5_tasas')) || { bcv: 37.00, usdt: 45.00 }
+    };
 
-    <table>
-      <thead>
-        <tr>
-            <th>Fecha</th>
-            <th>Modelo</th>
-            <th>Talla</th>
-            <th>PV (USDT)</th>
-            <th>Delivery (USDT)</th>
-            <th>Costo unitario (USDT)</th>
-            <th>Total Venta (USDT)</th>
-            <th>Método de Pago</th>
-            <th>Acciones</th>
-          </tr>
-      </thead>
-      <tbody id="tablaVentas"></tbody>
-    </table>
-      <div class="total" id="totalGeneral"></div>
-      <div class="total" id="totalCostos"></div>
-      <div class="total" id="utilidadTotal"></div>
+    // --- INICIO ---
+    document.addEventListener('DOMContentLoaded', () => {
+        if(db.inv.length === 0) resetFactory(false);
+        document.getElementById('tasaBCV').value = db.tasas.bcv;
+        document.getElementById('tasaUSDT').value = db.tasas.usdt;
+        renderApp();
+    });
 
-    <!-- Inventario vendido por talla -->
-    <div style="margin-top:18px">
-      <h3>📦 Inventario vendido por talla</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Modelo</th><th>S</th><th>M</th><th>L</th><th>XL</th><th>XXL</th>
-          </tr>
-        </thead>
-        <tbody id="tablaInventario"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <script>
-    // Utilidad: lee números aceptando coma o punto; si falla, usa fallback
-    function leerNumero(id, fallback = NaN) {
-      const el = document.getElementById(id);
-      const raw = (el?.value || "").toString().trim().replace(',', '.');
-      const n = parseFloat(raw);
-      return Number.isNaN(n) ? fallback : n;
+    // --- GUARDADO ---
+    function guardar() {
+        localStorage.setItem('v5_inv', JSON.stringify(db.inv));
+        localStorage.setItem('v5_ventas', JSON.stringify(db.ventas));
+        localStorage.setItem('v5_tasas', JSON.stringify(db.tasas));
     }
 
-    // Estado
-    let ventas = JSON.parse(localStorage.getItem("ventasGuantes")) || [];
-    let inventario = JSON.parse(localStorage.getItem("inventarioGuantes")) || {};
-    let editingIndex = null;
-    const costoUnitarioGuardado = localStorage.getItem("costoUnitario");
-
-    // tamaños que manejamos
-    const TALLAS = ['S','M','L','XL','XXL'];
-
-    // Cargar persistentes
-    const tasaBCVGuardada = localStorage.getItem("tasaBCV");
-    const tasaBinanceGuardada = localStorage.getItem("tasaBinance");
-    const pvUSDGuardado = localStorage.getItem("pvUSD");
-    const metodoPagoGuardado = localStorage.getItem("metodoPago");
-
-    if (tasaBCVGuardada) document.getElementById("tasaBCV").value = tasaBCVGuardada;
-    if (tasaBinanceGuardada) document.getElementById("tasaBinance").value = tasaBinanceGuardada;
-    if (pvUSDGuardado) document.getElementById("pvUSD").value = pvUSDGuardado;
-    if (costoUnitarioGuardado) document.getElementById("costoUnitario").value = costoUnitarioGuardado;
-    if (metodoPagoGuardado) {
-      const el = document.querySelector(`input[name="metodoPago"][value="${metodoPagoGuardado}"]`);
-      if (el) el.checked = true;
+    function guardarTasas() {
+        db.tasas.bcv = parseFloat(document.getElementById('tasaBCV').value) || 1;
+        db.tasas.usdt = parseFloat(document.getElementById('tasaUSDT').value) || 1;
+        guardar();
+        const gap = ((db.tasas.usdt - db.tasas.bcv) / db.tasas.usdt) * 100;
+        document.getElementById('gapInfo').innerText = `GAP: ${gap.toFixed(1)}%`;
     }
 
-    function guardarVentas() {
-      localStorage.setItem("ventasGuantes", JSON.stringify(ventas));
-    }
-    function guardarTasas(tasaBCV, tasaBinance) {
-      localStorage.setItem("tasaBCV", String(tasaBCV));
-      localStorage.setItem("tasaBinance", String(tasaBinance));
-    }
-    function guardarPV(pvUSD) {
-      localStorage.setItem("pvUSD", String(pvUSD));
-    }
-    function guardarCostoUnitario(costoUnitario) {
-      localStorage.setItem("costoUnitario", String(costoUnitario));
+    function renderApp() {
+        renderInventario();
+        renderSelect();
+        renderHistorial();
     }
 
     // --- INVENTARIO ---
-    function guardarInventario() {
-      localStorage.setItem("inventarioGuantes", JSON.stringify(inventario));
-      actualizarInventarioTabla();
+    function resetFactory(ask=true) {
+        if(ask && !confirm("¿Reiniciar todo el inventario a 50 unidades?")) return;
+        db.inv = [];
+        MODELOS_DEF.forEach(mod => {
+            mod.t.forEach(talla => {
+                db.inv.push({
+                    id: Math.random().toString(36).substr(2,6),
+                    modelo: mod.m,
+                    talla: talla,
+                    precio: mod.p,
+                    stock: 50
+                });
+            });
+        });
+        guardar();
+        renderApp();
     }
 
-    function ensureModeloInventario(modelo) {
-      if (!inventario[modelo]) {
-        inventario[modelo] = {};
-        TALLAS.forEach(t => inventario[modelo][t] = 0);
-      }
+    function renderInventario() {
+        const tbody = document.getElementById('tablaInv');
+        tbody.innerHTML = '';
+        db.inv.forEach(i => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${i.modelo}</td>
+                    <td><span class="badge bg-light text-dark border">${i.talla}</span></td>
+                    <td>$${i.precio}</td>
+                    <td class="${i.stock<5?'text-danger fw-bold':''}">${i.stock}</td>
+                </tr>
+            `;
+        });
     }
 
-    function incrementarInventario(modelo, talla, qty = 1) {
-      ensureModeloInventario(modelo);
-      if (!inventario[modelo][talla] && inventario[modelo][talla] !== 0) inventario[modelo][talla] = 0;
-      inventario[modelo][talla] = (inventario[modelo][talla] || 0) + qty;
+    // --- FORMULARIO ---
+    function renderSelect() {
+        const sel = document.getElementById('selProducto');
+        const val = sel.value;
+        sel.innerHTML = '<option value="">Seleccione producto...</option>';
+        db.inv.forEach((item, idx) => {
+            sel.innerHTML += `<option value="${idx}">${item.modelo} [${item.talla}] (Stock: ${item.stock})</option>`;
+        });
+        sel.value = val;
     }
 
-    function decrementarInventario(modelo, talla, qty = 1) {
-      ensureModeloInventario(modelo);
-      const inventoryVal = (inventario[modelo][talla] || 0) - qty;
-      inventario[modelo][talla] = Math.max(0, inventoryVal);
-    }
-
-    function rebuildInventarioFromVentas() {
-      inventario = {};
-      ventas.forEach(v => {
-        if (!v || !v.modelo || !v.talla) return;
-        ensureModeloInventario(v.modelo);
-        const t = v.talla;
-        if (TALLAS.includes(t)) inventario[v.modelo][t] = (inventario[v.modelo][t] || 0) + 1;
-      });
-      guardarInventario();
-    }
-
-    function actualizarInventarioTabla() {
-      const tbody = document.getElementById("tablaInventario");
-      tbody.innerHTML = "";
-      // obtener lista de modelos: union de inventario y opciones del select
-      const modelosSet = new Set(Object.keys(inventario || {}));
-      Array.from(document.getElementById("modelo").options).forEach(opt => modelosSet.add(opt.value));
-      const modelos = Array.from(modelosSet);
-      modelos.sort();
-
-      modelos.forEach(modelo => {
-        ensureModeloInventario(modelo);
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${modelo}</td>
-          <td>${inventario[modelo]['S'] ?? 0}</td>
-          <td>${inventario[modelo]['M'] ?? 0}</td>
-          <td>${inventario[modelo]['L'] ?? 0}</td>
-          <td>${inventario[modelo]['XL'] ?? 0}</td>
-          <td>${inventario[modelo]['XXL'] ?? 0}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-    // --- FIN INVENTARIO ---
-
-    function actualizarTabla() {
-      const cuerpo = document.getElementById("tablaVentas");
-      cuerpo.innerHTML = "";
-      let totalVenta = 0;
-      let totalCostos = 0;
-
-      ventas.forEach((v, i) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${v.fecha}</td>
-          <td>${v.modelo}</td>
-          <td>${v.talla}</td>
-          <td>${Number(v.pvUSDT).toFixed(2)}</td>
-          <td>${Number(v.deliveryUSDT).toFixed(2)}</td>
-          <td>${v.costoUnitario !== undefined ? Number(v.costoUnitario).toFixed(2) : "0.00"}</td>
-          <td>${Number(v.totalUSDT).toFixed(2)}</td>
-          <td>${v.metodoPago}</td>
-          <td>
-            <button class="action-btn action-edit" onclick="editarVenta(${i})">Editar</button>
-            <button class="action-btn action-delete" onclick="eliminarVenta(${i})">Eliminar</button>
-          </td>
-        `;
-        cuerpo.appendChild(tr);
-        totalVenta += Number(v.totalUSDT) || 0;
-        totalCostos += v.costoUnitario !== undefined ? Number(v.costoUnitario) : 0;
-      });
-
-      document.getElementById("totalGeneral").textContent =
-        ventas.length ? `🔹 Total acumulado venta: ${totalVenta.toFixed(2)} USDT` : "";
-      document.getElementById("totalCostos").textContent =
-        ventas.length ? `🔸 Total acumulado costos: ${totalCostos.toFixed(2)} USDT` : "";
-      document.getElementById("utilidadTotal").textContent =
-        ventas.length ? `💰 Utilidad total: ${(totalVenta-totalCostos).toFixed(2)} USDT` : "";
-
-      // actualizar inventario también
-      actualizarInventarioTabla();
-    }
-
-    // edición / eliminación
-    function editarVenta(index) {
-      const v = ventas[index];
-      if (!v) return;
-      editingIndex = index;
-      document.getElementById("modelo").value = v.modelo;
-      document.getElementById("talla").value = v.talla;
-      document.getElementById("costoUnitario").value = v.costoUnitario !== undefined ? Number(v.costoUnitario).toFixed(2) : "";
-      // intentar poblar campos según método
-      if ((v.metodoPago || "").includes('BCV')) {
-        // si hay tasas guardadas, aproximar USD
-        const tasaBCV = parseFloat(localStorage.getItem("tasaBCV"));
-        const tasaBinance = parseFloat(localStorage.getItem("tasaBinance"));
-        if (!Number.isNaN(tasaBCV) && !Number.isNaN(tasaBinance) && tasaBCV && tasaBinance) {
-          document.querySelector('input[name="metodoPago"][value="bcv"]').checked = true;
-          document.getElementById("pvUSD").value = ((v.pvUSDT * tasaBinance) / tasaBCV).toFixed(2);
-          document.getElementById("deliveryUSD").value = ((v.deliveryUSDT * tasaBinance) / tasaBCV).toFixed(2);
-          document.getElementById("tasaBCV").value = tasaBCV;
-          document.getElementById("tasaBinance").value = tasaBinance;
-        } else {
-          document.querySelector('input[name="metodoPago"][value="directo"]').checked = true;
-          document.getElementById("pvUSDT_directo").value = Number(v.pvUSDT).toFixed(2);
-          document.getElementById("deliveryUSDT_directo").value = Number(v.deliveryUSDT).toFixed(2);
+    function seleccionarProducto() {
+        const idx = document.getElementById('selProducto').value;
+        const info = document.getElementById('infoStock');
+        const precioInput = document.getElementById('inputPrecio');
+        
+        if(idx === "") {
+            info.innerText = "";
+            precioInput.value = "";
+            return;
         }
-      } else {
-        document.querySelector('input[name="metodoPago"][value="directo"]').checked = true;
-        document.getElementById("pvUSDT_directo").value = Number(v.pvUSDT).toFixed(2);
-        document.getElementById("deliveryUSDT_directo").value = Number(v.deliveryUSDT).toFixed(2);
-      }
-
-      actualizarVisibilidadInputs();
-      document.getElementById("registrarBtn").textContent = "Guardar cambios";
-      document.getElementById("cancelarEdicionBtn").style.display = "inline-block";
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        const item = db.inv[idx];
+        info.innerText = `Disponible: ${item.stock}`;
+        info.className = item.stock > 0 ? "small mt-1 text-end fw-bold text-success" : "small mt-1 text-end fw-bold text-danger";
+        
+        // Solo cambiamos el precio si NO estamos en modo edición de efectivo
+        // o si cambiamos de producto en una venta nueva
+        if(document.getElementById('selMetodo').value !== 'Efectivo') {
+            precioInput.value = item.precio;
+        } else {
+             // Si es efectivo y no hay precio puesto, sugerimos el de lista
+             if(!precioInput.value) precioInput.value = item.precio;
+        }
+        calcularPrevisualizacion();
     }
 
-    function eliminarVenta(index) {
-      if (!confirm("¿Eliminar este renglón?")) return;
-      const v = ventas[index];
-      if (v) {
-        // decrementar inventario por la venta eliminada
-        if (v.modelo && v.talla) decrementarInventario(v.modelo, v.talla, 1);
-      }
-      ventas.splice(index, 1);
-      guardarVentas();
-      guardarInventario();
-      actualizarTabla();
+    function verificarMetodo() {
+        const metodo = document.getElementById('selMetodo').value;
+        const input = document.getElementById('inputPrecio');
+        const idx = document.getElementById('selProducto').value;
+
+        if(metodo === 'Efectivo') {
+            input.removeAttribute('readonly');
+            input.classList.add('input-editable');
+        } else {
+            input.setAttribute('readonly', true);
+            input.classList.remove('input-editable');
+            if(idx !== "") input.value = db.inv[idx].precio;
+        }
+        calcularPrevisualizacion();
+    }
+
+    function calcularPrevisualizacion() {
+        const idx = document.getElementById('selProducto').value;
+        if(idx === "") return;
+
+        const cant = parseFloat(document.getElementById('inputCant').value) || 0;
+        const precioVenta = parseFloat(document.getElementById('inputPrecio').value) || 0;
+        const delivery = parseFloat(document.getElementById('inputDelivery').value) || 0;
+        const metodo = document.getElementById('selMetodo').value;
+        
+        const ventaNominal = (precioVenta * cant) + delivery;
+        let totalBs = 0;
+        let ingresoReal = 0;
+
+        if(metodo === 'BCV') {
+            totalBs = ventaNominal * db.tasas.bcv;
+            ingresoReal = totalBs / db.tasas.usdt;
+        } else {
+            totalBs = ventaNominal * db.tasas.usdt;
+            ingresoReal = ventaNominal;
+        }
+
+        const costoTotal = COSTO_BASE * cant;
+        const utilidad = ingresoReal - costoTotal; 
+
+        document.getElementById('viewBs').innerText = totalBs.toLocaleString('es-VE', {minimumFractionDigits:2, maximumFractionDigits:2});
+        document.getElementById('viewRealUSDT').innerText = ingresoReal.toFixed(2);
+        document.getElementById('viewUtilidad').innerText = utilidad.toFixed(2);
+    }
+
+    // --- LÓGICA DE SUBMIT (CREAR O EDITAR) ---
+    document.getElementById('formVenta').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const idx = document.getElementById('selProducto').value;
+        const cant = parseFloat(document.getElementById('inputCant').value);
+        
+        // Validación Stock
+        if(db.inv[idx].stock < cant) return Swal.fire("Stock Insuficiente", `Solo hay ${db.inv[idx].stock}`, "error");
+
+        // Calcular Valores Finales
+        const precioUnit = parseFloat(document.getElementById('inputPrecio').value);
+        const delivery = parseFloat(document.getElementById('inputDelivery').value) || 0;
+        const metodo = document.getElementById('selMetodo').value;
+        const ventaNominal = (precioUnit * cant) + delivery;
+        
+        let totalBs, ingresoReal;
+        if(metodo === 'BCV') {
+            totalBs = ventaNominal * db.tasas.bcv;
+            ingresoReal = totalBs / db.tasas.usdt;
+        } else {
+            totalBs = ventaNominal * db.tasas.usdt;
+            ingresoReal = ventaNominal;
+        }
+
+        const costoTotal = COSTO_BASE * cant;
+        const utilidad = ingresoReal - costoTotal;
+
+        const ventaObj = {
+            id: Date.now(),
+            fecha: new Date().toLocaleDateString(),
+            modelo: db.inv[idx].modelo,
+            talla: db.inv[idx].talla,
+            invId: db.inv[idx].id, // Vinculamos por ID fijo
+            cant: cant,
+            precioUnit: precioUnit,
+            delivery: delivery,
+            metodo: metodo,
+            totalBs: totalBs.toFixed(2),
+            ingresoReal: ingresoReal.toFixed(2),
+            costoTotal: costoTotal.toFixed(2),
+            utilidad: utilidad.toFixed(2)
+        };
+
+        const editId = document.getElementById('editId').value;
+
+        if(editId) {
+            // MODO EDICIÓN: Reemplazamos
+            const vIndex = db.ventas.findIndex(v => v.id == editId);
+            if(vIndex !== -1) {
+                ventaObj.id = parseInt(editId); // Mantener ID original
+                ventaObj.fecha = db.ventas[vIndex].fecha; // Mantener fecha original
+                db.ventas[vIndex] = ventaObj;
+                Swal.fire("Actualizado", "La venta ha sido modificada", "success");
+            }
+            finalizarEdicion();
+        } else {
+            // MODO NUEVO
+            db.ventas.push(ventaObj);
+            Swal.fire({ title: `Ganancia: ${utilidad.toFixed(2)} USDT`, icon: "success", timer: 1500, showConfirmButton:false });
+        }
+
+        // Restar Stock Nuevo
+        db.inv[idx].stock -= cant;
+        
+        guardar();
+        renderApp();
+        
+        if(!editId) limpiarFormulario();
+    });
+
+    function limpiarFormulario() {
+        document.getElementById('formVenta').reset();
+        document.getElementById('selProducto').value = "";
+        document.getElementById('infoStock').innerText = "";
+        document.getElementById('viewBs').innerText = "0.00";
+        document.getElementById('viewRealUSDT').innerText = "0.00";
+        document.getElementById('viewUtilidad').innerText = "0.00";
+    }
+
+    // --- SISTEMA DE EDICIÓN ---
+    function editarVenta(id) {
+        const venta = db.ventas.find(v => v.id === id);
+        if(!venta) return;
+
+        // 1. Encontrar item en inventario actual (por si cambió de orden)
+        const invIdx = db.inv.findIndex(i => i.id === venta.invId || (i.modelo === venta.modelo && i.talla === venta.talla));
+        
+        if(invIdx === -1) return Swal.fire("Error", "El producto ya no existe en inventario", "error");
+
+        // 2. DEVOLVER STOCK (Temporalmente mientras se edita)
+        db.inv[invIdx].stock += parseFloat(venta.cant);
+        guardar(); // Guardamos el stock devuelto por seguridad
+        renderApp(); // Refrescamos tablas
+
+        // 3. Llenar Formulario
+        document.getElementById('selProducto').value = invIdx;
+        seleccionarProducto(); // Carga datos stock visuales
+        
+        document.getElementById('inputCant').value = venta.cant;
+        document.getElementById('selMetodo').value = venta.metodo;
+        document.getElementById('inputDelivery').value = venta.delivery;
+        
+        // Manejo especial precio (si fue efectivo editado)
+        verificarMetodo(); 
+        document.getElementById('inputPrecio').value = venta.precioUnit;
+
+        // 4. Activar Modo Edición
+        document.getElementById('editId').value = venta.id;
+        
+        const btn = document.getElementById('btnSubmit');
+        btn.innerHTML = '<i class="bi bi-save"></i> GUARDAR CAMBIOS';
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-warning');
+        
+        document.getElementById('btnCancel').classList.remove('d-none');
+        document.getElementById('bannerEdicion').style.display = 'block';
+        
+        calcularPrevisualizacion();
+
+        // Ir al tab 1
+        new bootstrap.Tab(document.querySelector('#tab-venta')).show();
     }
 
     function cancelarEdicion() {
-      editingIndex = null;
-      document.getElementById("registrarBtn").textContent = "Registrar venta";
-      document.getElementById("cancelarEdicionBtn").style.display = "none";
-      // limpiar inputs de edición
-      document.getElementById("pvUSD").value = "";
-      document.getElementById("deliveryUSD").value = "";
-      document.getElementById("pvUSDT_directo").value = "";
-      document.getElementById("deliveryUSDT_directo").value = "";
-    }
+        const id = document.getElementById('editId').value;
+        if(!id) return;
 
-    // Exportar a Excel (.xlsx) - ahora incluye segunda hoja "Inventario"
-    function construirInventario(ventasList) {
-      const tallas = TALLAS;
-      const inv = {};
-      ventasList.forEach(v => {
-        if (!v || !v.modelo || !v.talla) return;
-        if (!inv[v.modelo]) {
-          inv[v.modelo] = {};
-          tallas.forEach(t => inv[v.modelo][t] = 0);
+        // Recuperar la venta original para volver a descontar el stock que devolvimos
+        const ventaOriginal = db.ventas.find(v => v.id == id);
+        const invIdx = document.getElementById('selProducto').value; // El producto que estaba seleccionado
+
+        // OJO: Si el usuario cambió el producto en el select antes de cancelar, 
+        // debemos buscar el producto original de la venta.
+        const itemOriginalIdx = db.inv.findIndex(i => i.id === ventaOriginal.invId);
+
+        if(itemOriginalIdx !== -1) {
+            db.inv[itemOriginalIdx].stock -= parseFloat(ventaOriginal.cant);
+            guardar();
+            renderApp();
         }
-        const t = v.talla;
-        if (tallas.includes(t)) inv[v.modelo][t] = (inv[v.modelo][t] || 0) + 1;
-      });
-      return { inv, tallas };
+
+        finalizarEdicion();
+        Swal.fire("Cancelado", "No se realizaron cambios", "info");
     }
 
-    function exportarXLSX() {
-      if (!window.XLSX) {
-        alert("La librería SheetJS aún no está disponible. Espera unos segundos y vuelve a intentar.");
-        return;
-      }
+    function finalizarEdicion() {
+        document.getElementById('editId').value = "";
+        document.getElementById('btnCancel').classList.add('d-none');
+        document.getElementById('bannerEdicion').style.display = 'none';
+        
+        const btn = document.getElementById('btnSubmit');
+        btn.innerHTML = '<i class="bi bi-plus-circle"></i> REGISTRAR OPERACIÓN';
+        btn.classList.add('btn-primary');
+        btn.classList.remove('btn-warning');
+        
+        limpiarFormulario();
+    }
 
-      // Hoja Ventas
-      const encabezadosVentas = ["Fecha","Modelo","Talla","PV (USDT)","Delivery (USDT)","Total Venta (USDT)", "Metodo de Pago"];
-      const datosVentas = ventas.map(v => [
-        v.fecha, v.modelo, v.talla, v.pvUSDT, v.deliveryUSDT, v.totalUSDT, v.metodoPago
-      ]);
-      const wsVentas = window.XLSX.utils.aoa_to_sheet([encabezadosVentas, ...datosVentas]);
+    // --- HISTORIAL ---
+    function renderHistorial() {
+        const tbody = document.getElementById('tablaVentas');
+        tbody.innerHTML = '';
 
-      // Hoja Inventario (construida a partir de ventas actuales)
-      const { inv, tallas } = construirInventario(ventas);
-      const encabezadosInv = ["Modelo", ...tallas];
-      const filasInv = [encabezadosInv];
-      const modelos = Object.keys(inv).sort();
-      if (modelos.length === 0) {
-        Array.from(document.getElementById("modelo").options).forEach(opt => {
-          if (!modelos.includes(opt.value)) modelos.push(opt.value);
+        let tVentas = 0, tCostos = 0, tUtilidad = 0;
+
+        [...db.ventas].reverse().forEach(v => {
+            tVentas += parseFloat(v.ingresoReal);
+            tCostos += parseFloat(v.costoTotal);
+            tUtilidad += parseFloat(v.utilidad);
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>${v.fecha}</td>
+                    <td>${v.modelo} <span class="badge bg-light text-dark border">${v.talla}</span></td>
+                    <td>${v.cant}</td>
+                    <td>${v.metodo}</td>
+                    <td class="fw-bold text-primary">${v.ingresoReal}</td>
+                    <td class="fw-bold text-success">${v.utilidad}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-warning text-dark" onclick="editarVenta(${v.id})" title="Editar"><i class="bi bi-pencil-fill"></i></button>
+                        <button class="btn btn-sm btn-outline-danger border-0" onclick="borrarVenta(${v.id})" title="Borrar"><i class="bi bi-trash-fill"></i></button>
+                    </td>
+                </tr>
+            `;
         });
-        modelos.sort();
-      }
-      modelos.forEach(modelo => {
-        const row = [modelo];
-        tallas.forEach(t => row.push(inv[modelo] ? (inv[modelo][t] || 0) : 0));
-        filasInv.push(row);
-      });
-      const wsInv = window.XLSX.utils.aoa_to_sheet(filasInv);
 
-      // Crear workbook y anexar ambas hojas
-      const wb = window.XLSX.utils.book_new();
-      window.XLSX.utils.book_append_sheet(wb, wsVentas, "Ventas");
-      window.XLSX.utils.book_append_sheet(wb, wsInv, "Inventario");
-      window.XLSX.writeFile(wb, "ventas_e_inventario_guantes.xlsx");
+        document.getElementById('dashVentas').innerText = tVentas.toFixed(2) + " USDT";
+        document.getElementById('dashCostos').innerText = tCostos.toFixed(2) + " USDT";
+        document.getElementById('dashUtilidad').innerText = tUtilidad.toFixed(2) + " USDT";
     }
 
-    // SheetJS desde CDN
-    var script = document.createElement('script');
-    script.src = 'https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js';
-    document.head.appendChild(script);
-
-    // Importar desde Excel (.xlsx)
-    document.getElementById('importarXLSXInput').addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        const data = new Uint8Array(evt.target.result);
-        const workbook = window.XLSX.read(data, {type: 'array'});
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = window.XLSX.utils.sheet_to_json(sheet, {header:1});
-        if (!rows || rows.length < 2) { alert('Archivo vacío o formato incorrecto.'); return; }
-        const encabezados = rows[0];
-        const esperado = ["Fecha","Modelo","Talla","PV (USDT)","Delivery (USDT)","Total Venta (USDT)", "Metodo de Pago"];
-        if (encabezados.length !== esperado.length || !encabezados.every((h,i) => h === esperado[i])) {
-          alert('Formato de archivo incorrecto. Exporta primero para ver el formato esperado.');
-          return;
-        }
-        const nuevasVentas = rows.slice(1).map(row => {
-          return {
-            fecha: row[0],
-            modelo: row[1],
-            talla: row[2],
-            pvUSDT: parseFloat(row[3]) || 0,
-            deliveryUSDT: parseFloat(row[4]) || 0,
-            totalUSDT: parseFloat(row[5]) || 0,
-            metodoPago: row[6] || ''
-          };
+    function borrarVenta(id) {
+        Swal.fire({
+            title: "¿Eliminar Venta?",
+            text: "El stock será devuelto al inventario.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Sí, borrar"
+        }).then((r) => {
+            if(r.isConfirmed) {
+                const v = db.ventas.find(x => x.id === id);
+                const idx = db.inv.findIndex(i => i.id === v.invId);
+                if(idx !== -1) db.inv[idx].stock += parseFloat(v.cant);
+                
+                db.ventas = db.ventas.filter(x => x.id !== id);
+                guardar();
+                renderApp();
+                Swal.fire("Borrado", "", "success");
+            }
         });
-        if (!nuevasVentas.length) { alert('No se encontraron ventas en el archivo.'); return; }
-        ventas = nuevasVentas;
-        guardarVentas();
-        rebuildInventarioFromVentas();
-        actualizarTabla();
-        alert('Ventas importadas correctamente.');
-        e.target.value = '';
-      };
-      reader.readAsArrayBuffer(file);
-    });
-
-    function exportarCSV() {
-      if (ventas.length === 0) { alert("No hay datos para exportar."); return; }
-      const encabezados = ["Fecha","Modelo","Talla","PV (USDT)","Delivery (USDT)","Total Venta (USDT)", "Metodo de Pago"];
-      let filas = [encabezados.join(",")];
-      ventas.forEach(v => {
-        filas.push([
-          `"${String(v.fecha).replace(/"/g,'""')}"`,
-          `"${String(v.modelo).replace(/"/g,'""')}"`,
-          `"${String(v.talla).replace(/"/g,'""')}"`,
-          Number(v.pvUSDT).toFixed(2),
-          Number(v.deliveryUSDT).toFixed(2),
-          Number(v.totalUSDT).toFixed(2),
-          `"${String(v.metodoPago).replace(/"/g,'""')}"`
-        ].join(","));
-      });
-      const blob = new Blob([filas.join("\n")], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "ventas_guantes.csv";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
     }
 
-    // -- EVENT LISTENERS --
-    document.querySelectorAll('input[name="metodoPago"]').forEach(radio => {
-        radio.addEventListener('change', actualizarVisibilidadInputs);
-    });
-
-    document.getElementById("pvUSD").addEventListener("change", () => {
-      const n = leerNumero("pvUSD", NaN);
-      if (!Number.isNaN(n)) guardarPV(n);
-    });
-    document.getElementById("costoUnitario").addEventListener("change", () => {
-      const n = leerNumero("costoUnitario", NaN);
-      if (!Number.isNaN(n)) guardarCostoUnitario(n);
-    });
-    document.getElementById("tasaBCV").addEventListener("change", () => {
-      const n = leerNumero("tasaBCV", NaN);
-      if (!Number.isNaN(n)) localStorage.setItem("tasaBCV", String(n));
-    });
-    document.getElementById("tasaBinance").addEventListener("change", () => {
-      const n = leerNumero("tasaBinance", NaN);
-      if (!Number.isNaN(n)) localStorage.setItem("tasaBinance", String(n));
-    });
-
-    // NUEVO: mostrar/ocultar inputs según método de pago
-    function actualizarVisibilidadInputs() {
-        const metodo = document.querySelector('input[name="metodoPago"]:checked').value;
-        const divBCV = document.getElementById('pagoBCV');
-        const divDirecto = document.getElementById('pagoDirecto');
-
-        if (metodo === 'bcv') {
-            divBCV.style.display = 'block';
-            divDirecto.style.display = 'none';
-        } else {
-            divBCV.style.display = 'none';
-            divDirecto.style.display = 'block';
+    function borrarTodo() {
+        if(confirm("¿Estás seguro de borrar TODA la base de datos?")) {
+            localStorage.clear();
+            location.reload();
         }
-        localStorage.setItem("metodoPago", metodo);
     }
 
-    function registrarVenta() {
-      const modelo = document.getElementById("modelo").value;
-      const talla = document.getElementById("talla").value;
-      const metodo = document.querySelector('input[name="metodoPago"]:checked').value;
-      const costoUnitario = leerNumero("costoUnitario", NaN);
-
-      let pvUSDT, deliveryUSDT, metodoPago;
-
-      if (Number.isNaN(costoUnitario)) { alert("Ingresa el Costo unitario (USDT)."); return; }
-      guardarCostoUnitario(costoUnitario);
-
-      if (metodo === 'bcv') {
-        const pvUSD = leerNumero("pvUSD", parseFloat(localStorage.getItem("pvUSD")));
-        const deliveryUSD = leerNumero("deliveryUSD", NaN);
-        const tasaBCV = leerNumero("tasaBCV", parseFloat(localStorage.getItem("tasaBCV")));
-        const tasaBinance = leerNumero("tasaBinance", parseFloat(localStorage.getItem("tasaBinance")));
-
-        if (Number.isNaN(pvUSD)) { alert("Ingresa el Precio de venta (USD)."); return; }
-        if (Number.isNaN(deliveryUSD)) { alert("Ingresa el Delivery (USD). Si es 0, escribe 0."); return; }
-        if (Number.isNaN(tasaBCV)) { alert("Ingresa la Tasa BCV."); return; }
-        if (Number.isNaN(tasaBinance)) { alert("Ingresa la Tasa Binance."); return; }
-        if (tasaBinance === 0) { alert("La Tasa Binance no puede ser 0."); return; }
-
-        guardarPV(pvUSD);
-        guardarTasas(tasaBCV, tasaBinance);
-
-        pvUSDT = (pvUSD * tasaBCV) / tasaBinance;
-        deliveryUSDT = (deliveryUSD * tasaBCV) / tasaBinance;
-        metodoPago = 'Bs. (BCV a USDT)';
-      } else {
-        pvUSDT = leerNumero("pvUSDT_directo", NaN);
-        deliveryUSDT = leerNumero("deliveryUSDT_directo", NaN);
-
-        if (Number.isNaN(pvUSDT)) { alert("Ingresa el Precio de venta (USDT)."); return; }
-        if (Number.isNaN(deliveryUSDT)) { alert("Ingresa el Delivery (USDT). Si es 0, escribe 0."); return; }
-        metodoPago = 'Divisa (USDT)';
-      }
-
-      const totalUSDT = pvUSDT + deliveryUSDT;
-      const fecha = new Date().toLocaleString();
-
-      if (editingIndex !== null) {
-        // actualizar inventario: restar la venta anterior y sumar la nueva
-        const prev = ventas[editingIndex];
-        if (prev && prev.modelo && prev.talla) {
-          decrementarInventario(prev.modelo, prev.talla, 1);
-        }
-        ventas[editingIndex] = { fecha, modelo, talla, pvUSDT, deliveryUSDT, costoUnitario, totalUSDT, metodoPago };
-        incrementarInventario(modelo, talla, 1);
-        editingIndex = null;
-        document.getElementById("registrarBtn").textContent = "Registrar venta";
-        document.getElementById("cancelarEdicionBtn").style.display = "none";
-      } else {
-        ventas.push({ fecha, modelo, talla, pvUSDT, deliveryUSDT, costoUnitario, totalUSDT, metodoPago });
-        incrementarInventario(modelo, talla, 1);
-      }
-
-      guardarVentas();
-      guardarInventario();
-      actualizarTabla();
-
-      // Limpia campos de entrada para agilizar ventas
-      document.getElementById("deliveryUSD").value = "";
-      document.getElementById("pvUSDT_directo").value = "";
-      document.getElementById("deliveryUSDT_directo").value = "";
-      document.getElementById("pvUSD").value = "";
-      // NO limpiar costoUnitario para conservar el valor
+    function exportarExcel() {
+        const data = db.ventas.map(v => ({
+            Fecha: v.fecha,
+            Modelo: v.modelo,
+            Talla: v.talla,
+            Cantidad: v.cant,
+            Metodo: v.metodo,
+            Bs_Recibidos: parseFloat(v.totalBs),
+            Ingreso_Real_USDT: parseFloat(v.ingresoReal),
+            Costo_Total: parseFloat(v.costoTotal),
+            Utilidad_Neta: parseFloat(v.utilidad)
+        }));
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Finanzas");
+        XLSX.writeFile(wb, "Reporte_Ventas_Guantes.xlsx");
     }
+</script>
 
-    function limpiarHistorial() {
-      if (confirm("¿Seguro que deseas borrar todas las ventas registradas?")) {
-        ventas = [];
-        inventario = {};
-        guardarVentas();
-        guardarInventario();
-        actualizarTabla();
-      }
-    }
-
-    // Inicialización al cargar la página
-    if ((!inventario || Object.keys(inventario).length === 0) && ventas.length) {
-      rebuildInventarioFromVentas();
-    } else {
-      actualizarInventarioTabla();
-    }
-    actualizarVisibilidadInputs();
-    actualizarTabla();
-  </script>
 </body>
 </html>
-// ...existing code...
