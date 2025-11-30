@@ -8,7 +8,7 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
+
     <style>
         body { background-color: #eef2f7; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .card-dashboard { border: none; border-radius: 12px; padding: 20px; color: white; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transition: transform 0.2s; }
@@ -61,17 +61,17 @@
     </ul>
 
     <div class="tab-content">
-        
+
         <!-- PESTAÑA 1: VENTA / EDICIÓN -->
         <div class="tab-pane fade show active bg-white p-4 rounded shadow-sm" id="venta-tab">
-            
+
             <div id="bannerEdicion" class="edit-mode-banner">
                 <i class="bi bi-pencil-square"></i> ESTÁS EN MODO EDICIÓN - El stock ha sido devuelto temporalmente
             </div>
 
             <form id="formVenta">
                 <input type="hidden" id="editId"> <!-- ID para saber si editamos -->
-                
+
                 <div class="row g-3">
                     <div class="col-md-5">
                         <label class="form-label fw-bold">Modelo</label>
@@ -142,7 +142,7 @@
 
         <!-- PESTAÑA 2: FINANZAS (HISTORIAL) -->
         <div class="tab-pane fade" id="historial-tab">
-            
+
             <!-- DASHBOARD -->
             <div class="row g-3 mb-4 text-center">
                 <div class="col-md-4">
@@ -193,7 +193,10 @@
         <!-- PESTAÑA 3: INVENTARIO -->
         <div class="tab-pane fade bg-white p-4 rounded shadow-sm" id="inventario-tab">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5><i class="bi bi-box-seam"></i> Inventario ($6 Costo Base)</h5>
+                <div>
+                    <h5><i class="bi bi-box-seam"></i> Inventario ($6 Costo Base)</h5>
+                    <small class="text-muted">Edite el stock directamente en la tabla.</small>
+                </div>
                 <button class="btn btn-sm btn-outline-warning" onclick="resetFactory()">Restaurar Stock Inicial</button>
             </div>
             <table class="table table-bordered table-hover">
@@ -202,7 +205,7 @@
                         <th>Modelo</th>
                         <th>Talla</th>
                         <th>Precio Venta ($)</th>
-                        <th>Stock</th>
+                        <th style="width: 150px;">Stock</th>
                     </tr>
                 </thead>
                 <tbody id="tablaInv"></tbody>
@@ -215,7 +218,7 @@
 <script>
     // --- CONFIGURACIÓN ---
     const COSTO_BASE = 6.00;
-    
+
     const MODELOS_DEF = [
         { m: "Impermeables", p: 15, t: ["S","M","L","XL","XXL"] },
         { m: "Reforzados", p: 16, t: ["M","L","XL"] },
@@ -288,10 +291,26 @@
                     <td>${i.modelo}</td>
                     <td><span class="badge bg-light text-dark border">${i.talla}</span></td>
                     <td>$${i.precio}</td>
-                    <td class="${i.stock<5?'text-danger fw-bold':''}">${i.stock}</td>
+                    <td><input type="number" class="form-control form-control-sm" style="width: 80px;" value="${i.stock}" onchange="actualizarStock('${i.id}', this.value)"></td>
                 </tr>
             `;
         });
+    }
+    
+    function actualizarStock(id, cantidad) {
+        const stock = parseInt(cantidad, 10);
+        if (isNaN(stock) || stock < 0) {
+             Swal.fire("Valor inválido", "Por favor, ingrese un número positivo.", "error");
+             renderApp(); // re-render to show original value
+             return;
+        }
+
+        const item = db.inv.find(i => i.id === id);
+        if(item) {
+            item.stock = stock;
+            guardar();
+            renderApp();
+        }
     }
 
     // --- FORMULARIO ---
@@ -309,17 +328,17 @@
         const idx = document.getElementById('selProducto').value;
         const info = document.getElementById('infoStock');
         const precioInput = document.getElementById('inputPrecio');
-        
+
         if(idx === "") {
             info.innerText = "";
             precioInput.value = "";
             return;
         }
-        
+
         const item = db.inv[idx];
         info.innerText = `Disponible: ${item.stock}`;
         info.className = item.stock > 0 ? "small mt-1 text-end fw-bold text-success" : "small mt-1 text-end fw-bold text-danger";
-        
+
         // Solo cambiamos el precio si NO estamos en modo edición de efectivo
         // o si cambiamos de producto en una venta nueva
         if(document.getElementById('selMetodo').value !== 'Efectivo') {
@@ -355,7 +374,7 @@
         const precioVenta = parseFloat(document.getElementById('inputPrecio').value) || 0;
         const delivery = parseFloat(document.getElementById('inputDelivery').value) || 0;
         const metodo = document.getElementById('selMetodo').value;
-        
+
         const ventaNominal = (precioVenta * cant) + delivery;
         let totalBs = 0;
         let ingresoReal = 0;
@@ -369,7 +388,7 @@
         }
 
         const costoTotal = COSTO_BASE * cant;
-        const utilidad = ingresoReal - costoTotal; 
+        const utilidad = ingresoReal - costoTotal;
 
         document.getElementById('viewBs').innerText = totalBs.toLocaleString('es-VE', {minimumFractionDigits:2, maximumFractionDigits:2});
         document.getElementById('viewRealUSDT').innerText = ingresoReal.toFixed(2);
@@ -381,7 +400,7 @@
         e.preventDefault();
         const idx = document.getElementById('selProducto').value;
         const cant = parseFloat(document.getElementById('inputCant').value);
-        
+
         // Validación Stock
         if(db.inv[idx].stock < cant) return Swal.fire("Stock Insuficiente", `Solo hay ${db.inv[idx].stock}`, "error");
 
@@ -390,7 +409,7 @@
         const delivery = parseFloat(document.getElementById('inputDelivery').value) || 0;
         const metodo = document.getElementById('selMetodo').value;
         const ventaNominal = (precioUnit * cant) + delivery;
-        
+
         let totalBs, ingresoReal;
         if(metodo === 'BCV') {
             totalBs = ventaNominal * db.tasas.bcv;
@@ -439,10 +458,10 @@
 
         // Restar Stock Nuevo
         db.inv[idx].stock -= cant;
-        
+
         guardar();
         renderApp();
-        
+
         if(!editId) limpiarFormulario();
     });
 
@@ -462,7 +481,7 @@
 
         // 1. Encontrar item en inventario actual (por si cambió de orden)
         const invIdx = db.inv.findIndex(i => i.id === venta.invId || (i.modelo === venta.modelo && i.talla === venta.talla));
-        
+
         if(invIdx === -1) return Swal.fire("Error", "El producto ya no existe en inventario", "error");
 
         // 2. DEVOLVER STOCK (Temporalmente mientras se edita)
@@ -473,26 +492,26 @@
         // 3. Llenar Formulario
         document.getElementById('selProducto').value = invIdx;
         seleccionarProducto(); // Carga datos stock visuales
-        
+
         document.getElementById('inputCant').value = venta.cant;
         document.getElementById('selMetodo').value = venta.metodo;
         document.getElementById('inputDelivery').value = venta.delivery;
-        
+
         // Manejo especial precio (si fue efectivo editado)
-        verificarMetodo(); 
+        verificarMetodo();
         document.getElementById('inputPrecio').value = venta.precioUnit;
 
         // 4. Activar Modo Edición
         document.getElementById('editId').value = venta.id;
-        
+
         const btn = document.getElementById('btnSubmit');
         btn.innerHTML = '<i class="bi bi-save"></i> GUARDAR CAMBIOS';
         btn.classList.remove('btn-primary');
         btn.classList.add('btn-warning');
-        
+
         document.getElementById('btnCancel').classList.remove('d-none');
         document.getElementById('bannerEdicion').style.display = 'block';
-        
+
         calcularPrevisualizacion();
 
         // Ir al tab 1
@@ -507,7 +526,7 @@
         const ventaOriginal = db.ventas.find(v => v.id == id);
         const invIdx = document.getElementById('selProducto').value; // El producto que estaba seleccionado
 
-        // OJO: Si el usuario cambió el producto en el select antes de cancelar, 
+        // OJO: Si el usuario cambió el producto en el select antes de cancelar,
         // debemos buscar el producto original de la venta.
         const itemOriginalIdx = db.inv.findIndex(i => i.id === ventaOriginal.invId);
 
@@ -525,12 +544,12 @@
         document.getElementById('editId').value = "";
         document.getElementById('btnCancel').classList.add('d-none');
         document.getElementById('bannerEdicion').style.display = 'none';
-        
+
         const btn = document.getElementById('btnSubmit');
         btn.innerHTML = '<i class="bi bi-plus-circle"></i> REGISTRAR OPERACIÓN';
         btn.classList.add('btn-primary');
         btn.classList.remove('btn-warning');
-        
+
         limpiarFormulario();
     }
 
@@ -579,7 +598,7 @@
                 const v = db.ventas.find(x => x.id === id);
                 const idx = db.inv.findIndex(i => i.id === v.invId);
                 if(idx !== -1) db.inv[idx].stock += parseFloat(v.cant);
-                
+
                 db.ventas = db.ventas.filter(x => x.id !== id);
                 guardar();
                 renderApp();
